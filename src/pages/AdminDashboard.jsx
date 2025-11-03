@@ -27,10 +27,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-  });
+  const  user  = JSON.parse(localStorage.getItem('user'));
 
   const { data: centers = [] } = useQuery({
     queryKey: ['allCenters'],
