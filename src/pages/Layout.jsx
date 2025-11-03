@@ -1,7 +1,6 @@
-
-
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
@@ -33,9 +32,15 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const isSubmitPage = currentPageName === "Submit";
 
-  const user = JSON.parse(localStorage.getItem('user'))
-  debugger
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user'));
   const isAdmin = user?.role === 'admin';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const adminNavigationItems = [
     {
@@ -173,7 +178,7 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-gray-100 p-4">
-            <div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
+            {!isAdmin && (<div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
               <p className="text-xs font-semibold text-[#000000] mb-1">7-Day Free Trial</p>
               <p className="text-xs text-[#555555]">5 days remaining</p>
               <Link to={createPageUrl("Settings")}>
@@ -182,7 +187,14 @@ export default function Layout({ children, currentPageName }) {
                 </button>
               </Link>
             </div>
+            )}
             <div className="mt-3 text-center">
+                <button 
+                  onClick={handleLogout}
+                  className="mb-2 w-full bg-[#8AE0F2] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#7ACDE0] transition-all duration-200"
+                >
+                  Logout
+                </button>
               <p className="tagline-text text-xs text-[#555555]">
                 Powered by{' '}
                 <a href="https://childcarestories.com.au" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#8AE0F2] hover:underline">
@@ -191,6 +203,7 @@ export default function Layout({ children, currentPageName }) {
               </p>
             </div>
           </SidebarFooter>
+
         </Sidebar>
 
         <main className="flex-1 flex flex-col bg-gray-50">
