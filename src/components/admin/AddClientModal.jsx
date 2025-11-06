@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { usersAPI } from "@/utils/api";
 import { useMutation } from "@tanstack/react-query";
 import {
   Dialog,
@@ -33,17 +33,18 @@ export default function AddClientModal({ onClose, onSuccess }) {
       };
 
       const limits = planLimits[data.subscription_plan];
-
-      return base44.entities.Center.create({
+      const centerData = {
         ...data,
         trial_end_date: data.subscription_plan === 'trial' ? trialEndDate : null,
-        subscription_status: data.subscription_plan === 'trial' ? 'trial' : 'active',
+        status: data.subscription_plan === 'trial' ? 'trial' : 'active',
         monthly_testimonials_limit: limits.testimonials,
         video_duration_limit: limits.videoDuration,
         testimonials_this_month: 0,
         billing_period_start: new Date().toISOString(),
         setup_completed: false,
-      });
+      };
+
+      return usersAPI.createCenter(centerData);
     },
     onSuccess: () => {
       onSuccess();

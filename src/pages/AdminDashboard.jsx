@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { usersAPI } from "@/utils/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,14 +29,19 @@ export default function AdminDashboard() {
 
   const  user  = JSON.parse(localStorage.getItem('user'));
 
-  const { data: centers = [] } = useQuery({
+  const { data: centers = [], isLoading: isLoadingCenters } = useQuery({
     queryKey: ['allCenters'],
-    queryFn: () => base44.entities.Center.list('-created_date'),
+    queryFn: () => usersAPI.getCenters(),
   });
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['allTestimonials'],
-    queryFn: () => base44.entities.Testimonial.list(),
+    queryFn: () => usersAPI.getTestimonials(),
+  });
+
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => usersAPI.getUsers(),
   });
 
   // Check if current user is admin
@@ -54,10 +59,10 @@ export default function AdminDashboard() {
     );
   }
 
-  const activeSubscriptions = centers.filter(c => c.subscription_status === 'active').length;
-  const trialCenters = centers.filter(c => c.subscription_status === 'trial').length;
+  const activeSubscriptions = centers.filter(c => c.is_active).length;
+  const trialCenters = centers.filter(c => c.package === 'trial').length;
   const monthlyRevenue = centers
-    .filter(c => c.subscription_status === 'active')
+    .filter(c => c.package === 'active')
     .reduce((sum, c) => {
       const prices = { starter: 29, professional: 79, enterprise: 149 };
       return sum + (prices[c.subscription_plan] || 0);
@@ -113,7 +118,7 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <ClientsList centers={filteredCenters} />
+          <ClientsList centers={filteredCenters} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         </CardContent>
       </Card>
 

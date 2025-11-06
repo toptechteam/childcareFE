@@ -50,4 +50,40 @@ export const authAPI = {
   // Add other auth-related API calls here
 };
 
+export const usersAPI = {
+  getUsers: async () => {
+    try {
+      const response = await api.get('/users/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  getCenters: async () => {
+    try {
+      const response = await api.get('/centers/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  getTestimonials: async () => {
+    try {
+      const response = await api.get('/testimonials/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  createCenter: async (data) => {
+    try {
+      const response = await api.post('/centers/', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  // Add other user-related API calls here
+};
+
 export default api;
