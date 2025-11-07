@@ -48,16 +48,6 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("admin"),
       icon: Shield,
     },
-    {
-      title: "Packages",
-      url: createPageUrl("AdminDashboard"),
-      icon: Shield,
-    },
-    {
-      title: "Logs",
-      url: createPageUrl("AdminDashboard"),
-      icon: Shield,
-    },
   ];
 
   const navigationItems = [

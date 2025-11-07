@@ -83,6 +83,24 @@ export const usersAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+  getPackageList: async () => {
+    try {
+      const response = await api.get('/packages/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  createPackage: async (data) => {
+    try {
+      const response = await api.post('/packages/', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
   // Add other user-related API calls here
 };
 

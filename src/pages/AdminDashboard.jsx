@@ -15,23 +15,33 @@ import {
   Plus,
   Crown,
   AlertCircle,
+  Package2,
 } from "lucide-react";
 import { format } from "date-fns";
 
 import AdminStatsCards from "../components/admin/AdminStatsCards";
 import ClientsList from "../components/admin/ClientsList";
 import AddClientModal from "../components/admin/AddClientModal";
+import PackageList from "@/components/admin/packageList";
+import AddPackageModal from "@/components/admin/AddPackageModal";
 
 export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchPackageQuery, setSearchPackageQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddPackageModal, setshowAddPackageModal] = useState(false);
 
-  const  user  = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('user'));
 
   const { data: centers = [], isLoading: isLoadingCenters } = useQuery({
     queryKey: ['allCenters'],
     queryFn: () => usersAPI.getCenters(),
+  });
+
+  const { data: packages = [], isLoading: isLoadingPackage } = useQuery({
+    queryKey: ['allPackages'],
+    queryFn: () => usersAPI.getPackageList(),
   });
 
   const { data: testimonials = [] } = useQuery({
@@ -71,6 +81,11 @@ export default function AdminDashboard() {
   const filteredCenters = centers.filter(c =>
     c.center_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPackages = packages.filter(c =>
+    c.name?.toLowerCase().includes(searchQuery.toLowerCase())
+
   );
 
   return (
@@ -128,6 +143,52 @@ export default function AdminDashboard() {
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['allCenters'] });
             setShowAddModal(false);
+          }}
+        />
+      )}
+
+
+
+      <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-xl mt-8">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <CardTitle className="flex items-center gap-2 text-[#000000]">
+              <Package2 className="w-5 h-5" />
+              Packages
+            </CardTitle>
+            <div className="flex items-center gap-4">
+
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#555555]" />
+                <Input
+                  placeholder="Search Package..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                onClick={() => setshowAddPackageModal(true)}
+                className="bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Package
+              </Button>
+            </div>
+
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PackageList plans={filteredPackages} />
+        </CardContent>
+      </Card>
+
+      {showAddPackageModal && (
+        <AddPackageModal
+          onClose={() => setshowAddPackageModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['allCenters'] });
+            setshowAddPackageModal(false);
           }}
         />
       )}

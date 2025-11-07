@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { usersAPI } from "@/utils/api";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDays, format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
 
 export default function AddClientModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -20,6 +21,12 @@ export default function AddClientModal({ onClose, onSuccess }) {
     contact_email: "",
     contact_phone: "",
     subscription_plan: "trial",
+    is_trial: true,
+  });
+
+  const { data: packages = [], isLoading: isLoadingPackage } = useQuery({
+    queryKey: ['allPackages'],
+    queryFn: () => usersAPI.getPackageList(),
   });
 
   const createCenterMutation = useMutation({
@@ -32,11 +39,11 @@ export default function AddClientModal({ onClose, onSuccess }) {
         enterprise: { testimonials: 999999, videoDuration: 600 },
       };
 
-      const limits = planLimits[data.subscription_plan];
+      const limits = planLimits[data.is_trial ? 'trial' : data.subscription_plan] || planLimits['trial'];
       const centerData = {
         ...data,
-        trial_end_date: data.subscription_plan === 'trial' ? trialEndDate : null,
-        status: data.subscription_plan === 'trial' ? 'trial' : 'active',
+        trial_end_date: data.is_trial ? trialEndDate : null,
+        status: data.is_trial ? 'trial' : 'active',
         monthly_testimonials_limit: limits.testimonials,
         video_duration_limit: limits.videoDuration,
         testimonials_this_month: 0,
@@ -47,7 +54,12 @@ export default function AddClientModal({ onClose, onSuccess }) {
       return usersAPI.createCenter(centerData);
     },
     onSuccess: () => {
+      console.log("✅ Center created successfully");
       onSuccess();
+    },
+    onError: (error) => {
+      debugger
+      console.error("❌ Error creating center:", error);
     },
   });
 
@@ -111,12 +123,24 @@ export default function AddClientModal({ onClose, onSuccess }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="trial">7-Day Trial</SelectItem>
-                <SelectItem value="starter">Starter - $29/month</SelectItem>
-                <SelectItem value="professional">Professional - $79/month</SelectItem>
-                <SelectItem value="enterprise">Enterprise - $149/month</SelectItem>
+                {packages.map((pkg) => (
+                  <SelectItem key={pkg.id} value={pkg.name.toLowerCase()}>
+                    {pkg.name} – ${pkg.price_monthly}/month
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <Label htmlFor="is_trial">Trial</Label>
+            <Switch
+              id="is_trial"
+              checked={formData.is_trial}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_trial: checked })
+              }
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
