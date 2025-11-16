@@ -67,6 +67,23 @@ export const usersAPI = {
       throw error.response?.data || error.message;
     }
   },
+  deleteCenter: async (id) => {
+    try {
+      const response = await api.delete(`/centers/${id}/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  
+  updatePackage: async (id, data) => {
+    try {
+      const response = await api.patch(`/packages/${id}/`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
   getTestimonials: async () => {
     try {
       const response = await api.get('/testimonials/');

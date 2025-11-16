@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { format } from "date-fns";
 import ClientDetailsModal from "./ClientDetailsModal";
+import AddPackageModal from "./AddPackageModal";
 
 const planStatusColors = {
   active: "bg-green-100 text-green-800",
@@ -86,12 +87,12 @@ export default function PackageList({ plans }) {
       </div>
 
       {/* Plan Details Modal */}
-      {/* {selectedPlan && (
-        <ClientDetailsModal
+      {selectedPlan && (
+        <AddPackageModal
           plan={selectedPlan}
           onClose={() => setSelectedPlan(null)}
         />
-      )} */}
+      )}
     </>
   );
 }

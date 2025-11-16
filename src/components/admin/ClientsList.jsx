@@ -36,8 +36,8 @@ export default function ClientsList({ centers }) {
       <div className="space-y-3">
         {centers.map((center) => {
           const daysRemaining = center.trial_end_date
-            ? differenceInDays(new Date(center.trial_end_date), new Date())
-            : 0;
+            // ? differenceInDays(new Date(center.trial_end_date), new Date())
+            // : 0;
 
           return (
             <div
@@ -64,12 +64,14 @@ export default function ClientsList({ centers }) {
                     <Badge className={planColors[center.subscription_plan]}>
                       {center.subscription_plan}
                     </Badge>
-                    <Badge className={statusColors[center.subscription_status]}>
-                      {center.subscription_status}
+                    <Badge
+                      className={center.is_trial ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}
+                    >
+                      {center.is_trial ? 'Trial' : 'Active'}
                     </Badge>
                   </div>
                   <p className="text-sm text-[#555555]">{center.contact_email}</p>
-                  {center.subscription_status === 'trial' && daysRemaining > 0 && (
+                  {center.is_trial && daysRemaining > 0 && (
                     <p className="text-xs text-[#8AE0F2] mt-1">
                       {daysRemaining} days remaining in trial
                     </p>

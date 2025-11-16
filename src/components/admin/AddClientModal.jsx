@@ -65,6 +65,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    formData.subscription_plan= parseInt(formData.subscription_plan);
     createCenterMutation.mutate(formData);
   };
 
@@ -116,16 +117,20 @@ export default function AddClientModal({ onClose, onSuccess }) {
           <div>
             <Label htmlFor="subscription_plan">Initial Plan</Label>
             <Select
-              value={formData.subscription_plan}
-              onValueChange={(value) => setFormData({ ...formData, subscription_plan: value })}
+              value={formData.subscription_plan.toString()}
+              onValueChange={(value) => {
+                setFormData(prev => ({ ...prev, subscription_plan: value }));
+              }}
             >
               <SelectTrigger className="mt-2">
-                <SelectValue />
+                <SelectValue placeholder="Select a plan">
+                  {formData.subscription_plan && packages.find(p => p.id.toString() === formData.subscription_plan.toString())?.name || 'Select a plan'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {packages.map((pkg) => (
-                  <SelectItem key={pkg.id} value={pkg.name.toLowerCase()}>
-                    {pkg.name} – ${pkg.price_monthly}/month
+                  <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                   {pkg.name} – ${pkg.price_monthly}/month
                   </SelectItem>
                 ))}
               </SelectContent>

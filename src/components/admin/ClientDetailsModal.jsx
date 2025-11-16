@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { usersAPI } from "@/utils/api";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -46,9 +48,23 @@ export default function ClientDetailsModal({ center, onClose }) {
     address: center.address || "",
   });
 
+  // Fetch packages
+  const { data: packages = [], isLoading: isLoadingPackages } = useQuery({
+    queryKey: ['allPackages'],
+    queryFn: () => usersAPI.getPackageList(),
+  });
+
   // Subscription form state
-  const [selectedPlan, setSelectedPlan] = useState(center.subscription_plan);
-  const [selectedStatus, setSelectedStatus] = useState(center.subscription_status);
+  const [selectedPlan, setSelectedPlan] = useState(center.subscription_plan?.toString() || '');
+  const [selectedStatus, setSelectedStatus] = useState(center.is_trial ? 'trial' : 'active');
+  
+  // Update selected plan when center data changes
+  useEffect(() => {
+    if (center.subscription_plan) {
+      setSelectedPlan(center.subscription_plan.toString());
+    }
+    setSelectedStatus(center.is_trial ? 'trial' : 'active');
+  }, [center]);
 
   const updateCenterMutation = useMutation({
     mutationFn: async (updates) => {
@@ -59,13 +75,28 @@ export default function ClientDetailsModal({ center, onClose }) {
     },
   });
 
+  const { toast } = useToast();
+
   const deleteCenterMutation = useMutation({
     mutationFn: async () => {
-      return base44.entities.Center.delete(center.id);
+      return usersAPI.deleteCenter(center.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allCenters'] });
+      toast({
+        title: "Success",
+        description: "Center deleted successfully",
+        variant: "default",
+      });
       onClose();
+    },
+    onError: (error) => {
+      console.error('Error deleting center:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete center",
+        variant: "destructive",
+      });
     },
   });
 
@@ -247,14 +278,12 @@ export default function ClientDetailsModal({ center, onClose }) {
               <div className="bg-gradient-to-br from-[#8AE0F2] to-[#7ACDE0] rounded-xl p-6 text-white">
                 <h3 className="font-semibold mb-2">Current Plan</h3>
                 <p className="text-3xl font-bold mb-1">
-                  {center.subscription_plan === 'starter' && '$29'}
-                  {center.subscription_plan === 'professional' && '$79'}
-                  {center.subscription_plan === 'enterprise' && '$149'}
-                  {center.subscription_plan === 'trial' && '$0'}
+                  ${packages.find(p => p.id === center.subscription_plan)?.price_monthly || '0'}
                   <span className="text-lg font-normal"> /month</span>
                 </p>
                 <p className="text-white/80 text-sm">
-                  {center.monthly_testimonials_limit} testimonials • {center.video_duration_limit / 60} min videos
+                  {packages.find(p => p.id === center.subscription_plan)?.testimonials_limit || 0} testimonials • 
+                  {Math.floor((packages.find(p => p.id === center.subscription_plan)?.video_duration_limit || 0) / 60)} min videos
                 </p>
               </div>
 
@@ -263,21 +292,22 @@ export default function ClientDetailsModal({ center, onClose }) {
                 <div className="space-y-4">
                   <div>
                     <Label>Subscription Plan</Label>
-                    <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                    <Select
+                      value={selectedPlan}
+                      onValueChange={setSelectedPlan}
+                      disabled={isLoadingPackages}
+                    >
                       <SelectTrigger className="mt-2">
-                        <SelectValue />
+                        <SelectValue placeholder="Select a plan">
+                          {selectedPlan && packages.find(p => p.id.toString() === selectedPlan)?.name || 'Select a plan'}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="trial">Trial (Free)</SelectItem>
-                        <SelectItem value="starter">
-                          Starter - $29/month (5 testimonials, 2min videos)
-                        </SelectItem>
-                        <SelectItem value="professional">
-                          Professional - $79/month (50 testimonials, 5min videos)
-                        </SelectItem>
-                        <SelectItem value="enterprise">
-                          Enterprise - $149/month (Unlimited, 10min videos)
-                        </SelectItem>
+                        {packages.map((pkg) => (
+                          <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                            {pkg.name} – ${pkg.price_monthly}/month
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -310,18 +340,17 @@ export default function ClientDetailsModal({ center, onClose }) {
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                 <h4 className="font-semibold text-blue-900 mb-2">Plan Comparison</h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-blue-800">Starter ($29)</span>
-                    <span className="text-blue-600">5 testimonials, 2min videos</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-800">Professional ($79)</span>
-                    <span className="text-blue-600">50 testimonials, 5min videos</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-800">Enterprise ($149)</span>
-                    <span className="text-blue-600">Unlimited, 10min videos</span>
-                  </div>
+                  {packages.map((pkg) => (
+                    <div key={pkg.id} className="flex justify-between">
+                      <span className="text-blue-800">
+                        {pkg.name} (${pkg.price_monthly}/month)
+                      </span>
+                      <span className="text-blue-600">
+                        {pkg.testimonials_limit === 999999 ? 'Unlimited' : pkg.testimonials_limit} testimonials 
+                        {/*, {pkg.video_duration_limit / 60} min videos */}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </TabsContent>
