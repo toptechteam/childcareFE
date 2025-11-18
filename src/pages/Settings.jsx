@@ -1,6 +1,5 @@
 
 import React from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,12 +8,14 @@ import { Crown, MapPin, Calendar, CreditCard, Building2, Settings as SettingsIco
 import { format, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { Center } from "@/api/entities";
+import { createCheckout, createCustomerPortal } from "@/api/functions";
 
 export default function Settings() {
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await base44.entities.Center.list();
+      const centers = await Center.find();
       return centers[0];
     },
   });
@@ -25,12 +26,9 @@ export default function Settings() {
 
   const handleUpgrade = async (plan) => {
     try {
-      const response = await base44.functions.invoke('createCheckout', {
-        plan,
-        center_id: center?.id
-      });
-      if (response.data.url) {
-        window.location.href = response.data.url;
+      const response = await createCheckout(plan, center?.id);
+      if (response?.url) {
+        window.location.href = response.url;
       }
     } catch (error) {
       console.error('Checkout error:', error);
@@ -39,11 +37,9 @@ export default function Settings() {
 
   const handleManageBilling = async () => {
     try {
-      const response = await base44.functions.invoke('createCustomerPortal', {
-        stripe_customer_id: center?.stripe_customer_id
-      });
-      if (response.data.url) {
-        window.open(response.data.url, '_blank');
+      const response = await createCustomerPortal(center?.stripe_customer_id);
+      if (response?.url) {
+        window.open(response.url, '_blank');
       }
     } catch (error) {
       console.error('Portal error:', error);

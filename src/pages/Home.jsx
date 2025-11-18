@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
+import { User } from "@/api/entities";
 import LandingPage from "./LandingPage";
 
 export default function Home() {
@@ -11,17 +11,19 @@ export default function Home() {
   // Check if we're on the app subdomain or main domain
   const isAppDomain = window.location.hostname.includes('app.');
 
-  const { data: isAuthenticated, isLoading } = useQuery({
-    queryKey: ['isAuthenticated'],
-    queryFn: () => base44.auth.isAuthenticated(),
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['user'],
+    queryFn: User.getProfile,
+    retry: false,
   });
 
   useEffect(() => {
-    // If on app subdomain and authenticated, redirect to Dashboard
-    if (isAppDomain && isAuthenticated && !isLoading) {
+    if (isLoading) return;
+    
+    if (user) {
       navigate(createPageUrl("Dashboard"));
     }
-  }, [isAuthenticated, isLoading, isAppDomain, navigate]);
+  }, [user, isLoading, navigate]);
 
   // Show loading while checking authentication
   if (isLoading) {

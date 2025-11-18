@@ -1,7 +1,7 @@
 
 import React from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import { Template } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Heart, Home, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ const scenarioColors = {
 export default function Templates() {
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
-    queryFn: () => base44.entities.Template.list(),
+    queryFn: () => Template.find(),
   });
 
   return (

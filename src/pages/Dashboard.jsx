@@ -1,6 +1,5 @@
 
 import React from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -16,6 +15,7 @@ import {
   ArrowRight
 } from "lucide-react";
 
+import { Center, Testimonial, TestimonialRequest } from "@/api/entities";
 import StatsCard from "../components/dashboard/StatsCard";
 import RecentTestimonials from "../components/dashboard/RecentTestimonials";
 import QuickActions from "../components/dashboard/QuickActions";
@@ -24,19 +24,19 @@ export default function Dashboard() {
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await base44.entities.Center.list();
-      return centers[0];
+      const centers = await Center.find();
+      return centers[0]; // Assuming we want the first center
     },
   });
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: () => base44.entities.Testimonial.list('-created_date'),
+    queryFn: () => Testimonial.find({ sort: '-created_date' }),
   });
 
   const { data: requests = [] } = useQuery({
     queryKey: ['requests'],
-    queryFn: () => base44.entities.TestimonialRequest.list('-created_date'),
+    queryFn: () => TestimonialRequest.find({ sort: '-created_date' }),
   });
 
   const newTestimonials = testimonials.filter(t => t.status === 'new').length;

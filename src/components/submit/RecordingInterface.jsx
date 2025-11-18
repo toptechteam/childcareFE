@@ -2,9 +2,9 @@ import React, { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Circle, Square, RotateCcw, Send, ArrowLeft, Upload } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 export default function RecordingInterface({ type, request, center, onSubmit, onBack, isSubmitting }) {
+  const apiUrl = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [recordedUrl, setRecordedUrl] = useState(null);
@@ -65,32 +65,64 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
     if (!file) return;
 
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setUploadedPhotoUrl(file_url);
-    setUploading(false);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const { fileUrl } = await response.json();
+      setUploadedPhotoUrl(fileUrl);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async () => {
     if (!recordedBlob) return;
 
     setUploading(true);
-    const file = new File(
-      [recordedBlob], 
-      `testimonial-${Date.now()}.${type === 'video' ? 'webm' : 'webm'}`,
-      { type: recordedBlob.type }
-    );
-
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-    onSubmit({
-      parent_name: request.parent_name,
-      child_name: request.child_name,
-      relationship: request.relationship,
-      testimonial_type: type,
-      file_url: file_url,
-      photo_url: uploadedPhotoUrl,
-      rating: 5,
-    });
+    try {
+      const file = new File([recordedBlob], `recording.${type === 'video' ? 'webm' : 'wav'}`, {
+        type: type === 'video' ? 'video/webm' : 'audio/wav'
+      });
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const { fileUrl } = await response.json();
+      onSubmit({
+        parent_name: request.parent_name,
+        child_name: request.child_name,
+        relationship: request.relationship,
+        testimonial_type: type,
+        file_url: fileUrl,
+        photo_url: uploadedPhotoUrl,
+        rating: 5,
+      });
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (

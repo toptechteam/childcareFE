@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usersAPI } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
+import { User } from "@/api/entities";
 import {
   Dialog,
   DialogContent,
@@ -48,13 +48,14 @@ export default function ClientDetailsModal({ center, onClose }) {
     address: center.address || "",
   });
 
-  // Fetch packages
-  const { data: packages = [], isLoading: isLoadingPackages } = useQuery({
-    queryKey: ['allPackages'],
-    queryFn: () => usersAPI.getPackageList(),
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['user', center.id],
+    queryFn: async () => {
+      return await User.findById(center.id);
+    },
+    enabled: !!center.id,
   });
 
-  // Subscription form state
   const [selectedPlan, setSelectedPlan] = useState(center.subscription_plan?.toString() || '');
   const [selectedStatus, setSelectedStatus] = useState(center.is_trial ? 'trial' : 'active');
   
@@ -66,14 +67,28 @@ export default function ClientDetailsModal({ center, onClose }) {
     setSelectedStatus(center.is_trial ? 'trial' : 'active');
   }, [center]);
 
-  const updateCenterMutation = useMutation({
-    mutationFn: async (updates) => {
-      return base44.entities.Center.update(center.id, updates);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allCenters'] });
-    },
-  });
+ const updateCenterMutation = useMutation({
+  mutationFn: async (updates) => {
+    debugger
+    return usersAPI.updateCenter(center.id, updates);
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['allCenters'] });
+    toast({
+      title: "Success",
+      description: "Center updated successfully",
+      variant: "default",
+    });
+  },
+  onError: (error) => {
+    console.error('Error updating center:', error);
+    toast({
+      title: "Error",
+      description: error.message || "Failed to update center",
+      variant: "destructive",
+    });
+  },
+});
 
   const { toast } = useToast();
 

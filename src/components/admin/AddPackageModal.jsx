@@ -114,7 +114,7 @@ export default function AddPackageModal({ onClose, onSuccess, plan }) {
             </div>
 
             {/* Branding Options */}
-            <div className="flex items-center justify-between mt-2">
+            {/* <div className="flex items-center justify-between mt-2">
               <Label htmlFor="branding_options">Branding Options</Label>
               <Switch
                 id="branding_options"
@@ -123,7 +123,7 @@ export default function AddPackageModal({ onClose, onSuccess, plan }) {
                   setFormData({ ...formData, branding_options: checked })
                 }
               />
-            </div>
+            </div> */}
 
             {/* Monthly Price */}
             <div>
@@ -178,21 +178,6 @@ export default function AddPackageModal({ onClose, onSuccess, plan }) {
                 checked={formData.active}
                 onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
               />
-            </div>
-            <div className="items-center justify-between mt-2">
-              <Label htmlFor="active">Active</Label>
-              {/* <Select value={selectedStatus} onValueChange={setSelectedStatus}> */}
-              <Select >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="trial">Trial</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="past_due">Past Due</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           {/* Buttons */}

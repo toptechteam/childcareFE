@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, Heart, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 
+import { Center, Template, TestimonialRequest } from "@/api/entities";
 import RequestHistory from "../components/request/RequestHistory";
 
 export default function Request() {
@@ -29,19 +29,19 @@ export default function Request() {
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await base44.entities.Center.list();
+      const centers = await Center.find();
       return centers[0];
     },
   });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
-    queryFn: () => base44.entities.Template.list(),
+    queryFn: () => Template.find(),
   });
 
   const { data: requests = [] } = useQuery({
     queryKey: ['requests'],
-    queryFn: () => base44.entities.TestimonialRequest.list('-created_date'),
+    queryFn: () => TestimonialRequest.find({ sort: '-created_date' }),
   });
 
   const sendRequestMutation = useMutation({
@@ -52,28 +52,42 @@ export default function Request() {
       const requestData = {
         ...data,
         unique_link: uniqueLink,
+        status: 'pending',
         sent_date: new Date().toISOString(),
         center_id: center?.id,
+        message: customMessage || selectedTemplate?.default_message || ''
       };
 
-      await base44.entities.TestimonialRequest.create(requestData);
+      const createdRequest = await TestimonialRequest.create(requestData);
 
       if (selectedTemplate) {
-        let emailBody = customMessage || selectedTemplate.email_body;
-        emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name);
-        emailBody = emailBody.replace(/\[Child Name\]/g, data.child_name);
+        let emailBody = customMessage || selectedTemplate.email_body || '';
+        emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name || '');
+        emailBody = emailBody.replace(/\[Child Name\]/g, data.child_name || '');
         emailBody = emailBody.replace(/\[Center Name\]/g, center?.center_name || 'Our Center');
         emailBody += `\n\nClick here to submit your testimonial: https://childcarestories.com.au${createPageUrl('Submit')}?link=${uniqueLink}`;
 
-        await base44.integrations.Core.SendEmail({
-          from_name: center?.center_name || 'ChildcareStories',
-          to: data.parent_email,
-          subject: selectedTemplate.email_subject,
-          body: emailBody,
-        });
+        // Send email using the API
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: data.parent_email,
+              subject: selectedTemplate.email_subject || 'Share Your Experience With Us',
+              body: emailBody,
+              from_name: center?.center_name || 'ChildcareStories'
+            }),
+          });
+        } catch (error) {
+          console.error('Failed to send email:', error);
+          // Continue even if email fails
+        }
       }
 
-      return requestData;
+      return createdRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requests'] });

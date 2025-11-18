@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Testimonial } from "@/api/entities";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -17,11 +17,11 @@ export default function Testimonials() {
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: () => base44.entities.Testimonial.list('-created_date'),
+    queryFn: () => Testimonial.find({ sort: '-created_date' }),
   });
 
   const updateTestimonialMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Testimonial.update(id, data),
+    mutationFn: ({ id, data }) => Testimonial.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['testimonials'] });
     },

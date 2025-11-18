@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Heart, Video, Mic, FileText, Send, CheckCircle } from "lucide-react";
 
+import { Center, Template, Testimonial, TestimonialRequest } from "@/api/entities";
 import SubmitHeader from "../components/submit/SubmitHeader";
 import RecordingInterface from "../components/submit/RecordingInterface";
 import TextReviewForm from "../components/submit/TextReviewForm";
@@ -14,11 +14,13 @@ export default function Submit() {
   const urlParams = new URLSearchParams(window.location.search);
   const linkId = urlParams.get('link');
 
+  const queryClient = useQueryClient();
+
   const { data: request } = useQuery({
     queryKey: ['request', linkId],
     queryFn: async () => {
-      const requests = await base44.entities.TestimonialRequest.list();
-      return requests.find(r => r.unique_link === linkId);
+      const requests = await TestimonialRequest.find();
+      return requests.find(r => r.unique_link === linkId) || null;
     },
     enabled: !!linkId,
   });
@@ -27,8 +29,7 @@ export default function Submit() {
     queryKey: ['center', request?.center_id],
     queryFn: async () => {
       if (!request?.center_id) return null;
-      const centers = await base44.entities.Center.list();
-      return centers.find(c => c.id === request.center_id);
+      return Center.findById(request.center_id);
     },
     enabled: !!request?.center_id,
   });
@@ -37,28 +38,36 @@ export default function Submit() {
     queryKey: ['template', request?.template_id],
     queryFn: async () => {
       if (!request?.template_id) return null;
-      const templates = await base44.entities.Template.list();
-      return templates.find(t => t.id === request.template_id);
+      const templates = await Template.find();
+      return templates.find(t => t.id === request.template_id) || null;
     },
     enabled: !!request?.template_id,
   });
 
   const submitTestimonialMutation = useMutation({
     mutationFn: async (data) => {
-      await base44.entities.Testimonial.create({
+      // Create the testimonial
+      await Testimonial.create({
         ...data,
         center_id: request?.center_id,
         request_id: request?.id,
+        testimonial_type: selectedType,
+        status: 'pending',
+        created_at: new Date().toISOString(),
       });
 
-      if (request) {
-        await base44.entities.TestimonialRequest.update(request.id, {
+      // Update the request as completed
+      if (request?.id) {
+        await TestimonialRequest.update(request.id, {
           completed: true,
           completed_date: new Date().toISOString(),
         });
       }
     },
     onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
       setSubmitted(true);
     },
   });

@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Send, ArrowLeft, Upload } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 
 export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting }) {
+  const apiUrl = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -18,9 +18,26 @@ export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting
     if (!file) return;
 
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setPhotoUrl(file_url);
-    setUploading(false);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const { fileUrl } = await response.json();
+      setPhotoUrl(fileUrl);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = (e) => {

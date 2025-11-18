@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -10,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Check, Building2, Palette, Globe } from "lucide-react";
 import { format, addDays } from "date-fns";
+import { Center } from "@/api/entities";
+import { UploadFile } from "@/api/integrations";
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function Setup() {
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await base44.entities.Center.list();
+      const centers = await Center.find();
       return centers[0];
     },
   });
@@ -54,18 +55,19 @@ export default function Setup() {
   const createOrUpdateMutation = useMutation({
     mutationFn: async (data) => {
       const trialEndDate = format(addDays(new Date(), 7), 'yyyy-MM-dd');
-      if (center) {
-        return base44.entities.Center.update(center.id, { 
-          ...data, 
-          setup_completed: true 
-        });
-      } else {
-        return base44.entities.Center.create({ 
-          ...data, 
-          setup_completed: true,
+      const centerData = {
+        ...data,
+        setup_completed: true,
+        ...(!center?.id && {
           trial_end_date: trialEndDate,
           subscription_plan: "trial"
-        });
+        })
+      };
+
+      if (center?.id) {
+        return Center.update(center.id, centerData);
+      } else {
+        return Center.create(centerData);
       }
     },
     onSuccess: () => {
@@ -79,9 +81,25 @@ export default function Setup() {
     if (!file) return;
 
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setFormData(prev => ({ ...prev, logo_url: file_url }));
-    setUploading(false);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const { fileUrl } = await response.json();
+      setFormData(prev => ({ ...prev, logo_url: fileUrl }));
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      // Handle error (e.g., show error message to user)
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = (e) => {

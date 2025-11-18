@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import { Center, Testimonial } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Code, Copy, Check, Eye } from "lucide-react";
@@ -14,18 +14,16 @@ export default function Embed() {
 
   // Renamed 'center' to 'centre' for Australian spelling
   const { data: centre } = useQuery({
-    // Updated queryKey to 'centre'
     queryKey: ['centre'],
     queryFn: async () => {
-      // Assuming 'Center' as an entity name in the API should remain as is
-      const centres = await base44.entities.Center.list();
-      return centres[0];
+      const centres = await Center.find();
+      return centres[0] || null;
     },
   });
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: () => base44.entities.Testimonial.list('-created_date'),
+    queryFn: () => Testimonial.find({ sort: '-created_date' }),
   });
 
   const approvedTestimonials = testimonials.filter(
