@@ -105,7 +105,7 @@ export const TestimonialRequest = {
   },
   create: async (data) => {
     try {
-      const response = await api.post('/testimonial-requests', data);
+      const response = await api.post('/testimonial-requests/', data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -113,7 +113,7 @@ export const TestimonialRequest = {
   },
   update: async (id, data) => {
     try {
-      const response = await api.patch(`/testimonial-requests/${id}`, data);
+      const response = await api.patch(`/testimonial-requests/${id}/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -121,7 +121,7 @@ export const TestimonialRequest = {
   },
   delete: async (id) => {
     try {
-      const response = await api.delete(`/testimonial-requests/${id}`);
+      const response = await api.delete(`/testimonial-requests/${id}/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -132,7 +132,7 @@ export const TestimonialRequest = {
 export const Testimonial = {
   find: async (query = {}) => {
     try {
-      const response = await api.get('/testimonials', { params: query });
+      const response = await api.get('/testimonials/', { params: query });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

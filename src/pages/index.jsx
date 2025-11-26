@@ -108,7 +108,7 @@ function PagesContent() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/submit" element={<Submit />} />
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/home" element={<Home />} />
+                {/* <Route path="/home" element={<Home />} /> */}
                 <Route path="*" element={<Navigate to={getRedirectPath()} replace />} />
               </Routes>
             </Layout>

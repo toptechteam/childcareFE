@@ -24,6 +24,7 @@ export default function Request() {
     relationship: "",
     template_id: "",
   });
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [customMessage, setCustomMessage] = useState("");
 
   const { data: center } = useQuery({
@@ -52,7 +53,7 @@ export default function Request() {
       const requestData = {
         ...data,
         unique_link: uniqueLink,
-        status: 'pending',
+        // status: 'active',
         sent_date: new Date().toISOString(),
         center_id: center?.id,
         message: customMessage || selectedTemplate?.default_message || ''
@@ -103,8 +104,6 @@ export default function Request() {
     },
   });
 
-  const selectedTemplate = templates.find(t => t.id === formData.template_id);
-  console.log('selectedTemplate:',  formData.template_id);
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -206,15 +205,35 @@ export default function Request() {
 
               <div>
                 <Label htmlFor="template_id">Select Template *</Label>
+
                 <Select
                   value={formData.template_id}
-                  onValueChange={(value) => setFormData({ ...formData, template_id: value })}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, template_id: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a testimonial prompt" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* <Select
+                  value={formData.template_id}
+                  onValueChange={(value) => {
+                    const template = templates.find(t => t.id === value);
+                    setFormData(prev => ({ ...prev, template_id: value }));
+                    setSelectedTemplate(template);
+                  }}
                   required
                 >
-                  <SelectTrigger className="mt-2" id="template_id">
-                    <SelectValue placeholder="Choose a testimonial prompt" >
-                      {selectedTemplate ? selectedTemplate.title : 'Choose a testimonial prompt'}
-                    </SelectValue>
+                  <SelectTrigger className="mt-2 w-full">
+                    <SelectValue placeholder="Choose a testimonial prompt" />
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map((template) => (
@@ -223,7 +242,7 @@ export default function Request() {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                </Select> */}
               </div>
 
               {selectedTemplate && (

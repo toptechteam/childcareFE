@@ -12,6 +12,7 @@ export default function Submit() {
   const [submitted, setSubmitted] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
+  debugger
   const linkId = urlParams.get('link');
 
   const queryClient = useQueryClient();
