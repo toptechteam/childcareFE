@@ -73,7 +73,7 @@ function PagesContent() {
   // ✅ Determine redirect target based on user role
   const getRedirectPath = () => {
     if (!isAuthenticated) return '/login';
-    if (user?.role === 'admin') return '/admin';
+    if (user?.role === 'admin' && user?.is_superuser) return '/admin';
     return '/dashboard';
   };
 

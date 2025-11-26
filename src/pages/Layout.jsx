@@ -35,7 +35,7 @@ export default function Layout({ children, currentPageName }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'admin' && user?.is_superuser;
 
   const handleLogout = () => {
     logout();
@@ -48,6 +48,11 @@ export default function Layout({ children, currentPageName }) {
       url: createPageUrl("admin"),
       icon: Shield,
     },
+    {
+    title: "Request Template",
+    url:  createPageUrl("templates"),
+    icon: FileText, // Make sure to import FileText from lucide-react
+  },
   ];
 
   const navigationItems = [

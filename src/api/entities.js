@@ -46,7 +46,7 @@ export const Center = {
 export const Template = {
   find: async (query = {}) => {
     try {
-      const response = await api.get('/templates', { params: query });
+      const response = await api.get('/templates/', { params: query });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -62,7 +62,7 @@ export const Template = {
   },
   create: async (data) => {
     try {
-      const response = await api.post('/templates', data);
+      const response = await api.post('/templates/', data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

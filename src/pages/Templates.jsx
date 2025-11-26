@@ -1,10 +1,12 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Template } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Heart, Home, ThumbsUp } from "lucide-react";
+import { FileText, FileTextIcon, Heart, Home, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import AddTemplateModal from "@/components/admin/AddTemplateModal";
 
 const scenarioIcons = {
   general: Heart,
@@ -26,15 +28,26 @@ export default function Templates() {
     queryFn: () => Template.find(),
   });
 
+  const [showAddTemplateModal, setshowAddTemplateModal] = useState(false);
+
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-[#000000] mb-2">
-          Testimonial Templates
-        </h1>
-        <p className="text-[#555555]">Pre-written prompts for different scenarios</p>
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-[#000000] mb-2">
+            All Testimonials
+          </h1>
+          <p className="text-[#555555]">Manage and review parent testimonials</p>
+        </div>
+        <Button
+          onClick={() =>{ setshowAddTemplateModal(true)}}
+          className="whitespace-nowrap"
+        >
+          <FileText className="mr-2 h-4 w-4" />
+          Request Template
+        </Button>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {templates.map((template) => {
           const Icon = scenarioIcons[template.scenario] || FileText;
@@ -77,6 +90,16 @@ export default function Templates() {
           );
         })}
       </div>
+
+      {showAddTemplateModal && (
+        <AddTemplateModal
+          onClose={() => setshowAddTemplateModal(false)}
+          onSuccess={() => {
+            // queryClient.invalidateQueries({ queryKey: ['templates'] });
+            setshowAddTemplateModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

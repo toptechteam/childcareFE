@@ -43,7 +43,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
       const centerData = {
         ...data,
         trial_end_date: data.is_trial ? trialEndDate : null,
-        status: data.is_trial ? 'trial' : 'active',
+        status:  'active',
         monthly_testimonials_limit: limits.testimonials,
         video_duration_limit: limits.videoDuration,
         testimonials_this_month: 0,

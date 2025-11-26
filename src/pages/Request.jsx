@@ -48,7 +48,7 @@ export default function Request() {
     mutationFn: async (data) => {
       const uniqueLink = `${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
       const selectedTemplate = templates.find(t => t.id === data.template_id);
-      
+
       const requestData = {
         ...data,
         unique_link: uniqueLink,
@@ -104,7 +104,7 @@ export default function Request() {
   });
 
   const selectedTemplate = templates.find(t => t.id === formData.template_id);
-
+  console.log('selectedTemplate:',  formData.template_id);
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -137,7 +137,7 @@ export default function Request() {
                     id="parent_name"
                     name="parent_name"
                     value={formData.parent_name}
-                    onChange={(e) => setFormData({...formData, parent_name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
                     placeholder="Sarah Johnson"
                     required
                     className="mt-2"
@@ -150,7 +150,7 @@ export default function Request() {
                     name="parent_email"
                     type="email"
                     value={formData.parent_email}
-                    onChange={(e) => setFormData({...formData, parent_email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
                     placeholder="sarah@example.com"
                     required
                     className="mt-2"
@@ -165,7 +165,7 @@ export default function Request() {
                     id="child_name"
                     name="child_name"
                     value={formData.child_name}
-                    onChange={(e) => setFormData({...formData, child_name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, child_name: e.target.value })}
                     placeholder="Emma"
                     required
                     className="mt-2"
@@ -175,7 +175,7 @@ export default function Request() {
                   <Label htmlFor="relationship">Relationship *</Label>
                   <Select
                     value={formData.relationship}
-                    onValueChange={(value) => setFormData({...formData, relationship: value})}
+                    onValueChange={(value) => setFormData({ ...formData, relationship: value })}
                     required
                   >
                     <SelectTrigger className="mt-2" id="relationship">
@@ -198,7 +198,7 @@ export default function Request() {
                   name="parent_phone"
                   type="tel"
                   value={formData.parent_phone}
-                  onChange={(e) => setFormData({...formData, parent_phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
                   placeholder="(02) 1234 5678"
                   className="mt-2"
                 />
@@ -208,11 +208,13 @@ export default function Request() {
                 <Label htmlFor="template_id">Select Template *</Label>
                 <Select
                   value={formData.template_id}
-                  onValueChange={(value) => setFormData({...formData, template_id: value})}
+                  onValueChange={(value) => setFormData({ ...formData, template_id: value })}
                   required
                 >
                   <SelectTrigger className="mt-2" id="template_id">
-                    <SelectValue placeholder="Choose a testimonial prompt" />
+                    <SelectValue placeholder="Choose a testimonial prompt" >
+                      {selectedTemplate ? selectedTemplate.title : 'Choose a testimonial prompt'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map((template) => (
