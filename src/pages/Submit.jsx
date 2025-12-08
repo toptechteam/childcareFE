@@ -27,22 +27,22 @@ export default function Submit() {
   });
 
   const { data: center } = useQuery({
-    queryKey: ['center', request?.center_id],
+    queryKey: ['center', request?.center],
     queryFn: async () => {
-      if (!request?.center_id) return null;
-      return Center.findById(request.center_id);
+      if (!request?.center) return null;
+      return Center.findById(request.center);
     },
-    enabled: !!request?.center_id,
+    enabled: !!request?.center,
   });
 
   const { data: template } = useQuery({
-    queryKey: ['template', request?.template_id],
+    queryKey: ['template', request?.template],
     queryFn: async () => {
-      if (!request?.template_id) return null;
+      if (!request?.template) return null;
       const templates = await Template.find();
-      return templates.find(t => t.id === request.template_id) || null;
+      return templates.find(t => t.id === request.template) || null;
     },
-    enabled: !!request?.template_id,
+    enabled: !!request?.template,
   });
 
   const submitTestimonialMutation = useMutation({
@@ -168,8 +168,8 @@ export default function Submit() {
         <div className="max-w-3xl mx-auto">
           <SubmitHeader
             center={center}
-            parentName={request.parent_name}
-            childName={request.child_name}
+            parentName={request?.parent_name}
+            childName={request?.child_name}
             promptText={template?.prompt_text}
           />
 
