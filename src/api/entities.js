@@ -132,7 +132,7 @@ export const TestimonialRequest = {
 export const Testimonial = {
   find: async (query = {}) => {
     try {
-      const response = await api.get('/testimonials/', { params: query });
+      const response = await api.get('/requests/', { params: query });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

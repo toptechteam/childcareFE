@@ -19,8 +19,8 @@ const statusColors = {
 };
 
 export default function TestimonialCard({ testimonial, onStatusChange, onClick }) {
-  const typeConfig = typeIcons[testimonial.testimonial_type];
-  const TypeIcon = typeConfig.icon;
+  const typeConfig = typeIcons['audio'];
+  const TypeIcon = typeConfig?.icon;
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group" onClick={onClick}>

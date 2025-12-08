@@ -25,7 +25,7 @@ const statusColors = {
 export default function TestimonialModal({ testimonial, onClose, onStatusChange }) {
   if (!testimonial) return null;
 
-  const typeConfig = typeIcons[testimonial.testimonial_type];
+  const typeConfig = typeIcons['video'];
   const TypeIcon = typeConfig.icon;
 
   return (

@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Testimonial } from "@/api/entities";
+import { Testimonial, TestimonialRequest } from "@/api/entities";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -16,14 +16,14 @@ export default function Testimonials() {
   const [selectedTestimonial, setSelectedTestimonial] = useState(null);
 
   const { data: testimonials = [] } = useQuery({
-    queryKey: ['testimonials'],
-    queryFn: () => Testimonial.find({ sort: '-created_date' }),
+    queryKey: ['testimonials-requests'],
+    queryFn: () => TestimonialRequest.find({ sort: '-created_date' }),
   });
 
   const updateTestimonialMutation = useMutation({
-    mutationFn: ({ id, data }) => Testimonial.update(id, data),
+    mutationFn: ({ id, data }) => TestimonialRequest.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
+      queryClient.invalidateQueries({ queryKey: ['testimonials-requests'] });
     },
   });
 
