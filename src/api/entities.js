@@ -126,7 +126,25 @@ export const TestimonialRequest = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
-  }
+  },
+  submit: async (data) => {
+    try {
+      const response = await api.post('/testimonial-request-approval/', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  complete: async (id,data) => {
+    try {
+      const response = await api.post('/testimonial-request-completed/'+id, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  
 };
 
 export const Testimonial = {
@@ -154,6 +172,17 @@ export const Testimonial = {
       throw error.response?.data || error.message;
     }
   },
+  submit: async (data) => {
+    try {
+      const response = await api.post('/testimonial-request-approval', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  
+
+  
   update: async (id, data) => {
     try {
       const response = await api.patch(`/testimonials/${id}`, data);

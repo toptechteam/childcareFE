@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Circle, Square, RotateCcw, Send, ArrowLeft, Upload } from "lucide-react";
 
 export default function RecordingInterface({ type, request, center, onSubmit, onBack, isSubmitting }) {
-  const apiUrl = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [recordedUrl, setRecordedUrl] = useState(null);
@@ -69,7 +69,7 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${apiUrl}/api/upload`, {
+      const response = await fetch(`${apiUrl}/integrations/upload-file/`, {
         method: 'POST',
         body: formData,
       });
@@ -78,8 +78,8 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
         throw new Error('Upload failed');
       }
       
-      const { fileUrl } = await response.json();
-      setUploadedPhotoUrl(fileUrl);
+      const { file_url } = await response.json();
+      setUploadedPhotoUrl(file_url);
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -99,7 +99,7 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${apiUrl}/api/upload`, {
+      const response = await fetch(`${apiUrl}/integrations/upload-file/`, {
         method: 'POST',
         body: formData,
       });
@@ -108,13 +108,13 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
         throw new Error('Upload failed');
       }
       
-      const { fileUrl } = await response.json();
+      const { file_url } = await response.json();
       onSubmit({
         parent_name: request.parent_name,
         child_name: request.child_name,
         relationship: request.relationship,
         testimonial_type: type,
-        file_url: fileUrl,
+        file_url: file_url,
         photo_url: uploadedPhotoUrl,
         rating: 5,
       });

@@ -60,7 +60,7 @@ export default function Request() {
       };
 
       const createdRequest = await TestimonialRequest.create(requestData);
-
+      debugger
       if (selectedTemplate) {
         let emailBody = customMessage || selectedTemplate.email_body || '';
         emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name || '');
@@ -208,8 +208,13 @@ export default function Request() {
 
                 <Select
                   value={formData.template_id}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, template_id: value }))
+
+                  onValueChange={(value) => {
+                    debugger
+                    setFormData((prev) => ({ ...prev, template_id: value.toString() }))
+                    const template = templates.find(t => t.id.toString() === value.toString());
+                    setSelectedTemplate(template);
+                  }
                   }
                 >
                   <SelectTrigger>
@@ -217,43 +222,29 @@ export default function Request() {
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.id} value={option.id.toString()}>
                         {option.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {/* <Select
-                  value={formData.template_id}
-                  onValueChange={(value) => {
-                    const template = templates.find(t => t.id === value);
-                    setFormData(prev => ({ ...prev, template_id: value }));
-                    setSelectedTemplate(template);
-                  }}
-                  required
-                >
-                  <SelectTrigger className="mt-2 w-full">
-                    <SelectValue placeholder="Choose a testimonial prompt" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select> */}
+
               </div>
 
               {selectedTemplate && (
                 <div className="bg-[#8AE0F2]/10 rounded-xl p-4 border border-[#8AE0F2]/20">
                   <p className="text-sm font-medium text-[#000000] mb-2">Email Preview:</p>
                   <p className="text-sm text-[#000000] mb-2 font-semibold">Subject: {selectedTemplate.email_subject}</p>
-                  <p className="text-sm text-[#555555] whitespace-pre-line">
-                    {selectedTemplate.email_body
-                      .replace(/\[Parent Name\]/g, formData.parent_name || '[Parent Name]')
-                      .replace(/\[Child Name\]/g, formData.child_name || '[Child Name]')
-                      .replace(/\[Center Name\]/g, center?.center_name || '[Center Name]')}
+                  <p className="text-sm text-[#555555] whitespace-pre-line"
+
+                    dangerouslySetInnerHTML={{
+                      __html: selectedTemplate.email_body
+                        .replace(/\[Parent Name\]/g, formData.parent_name || '[Parent Name]')
+                        .replace(/\[Child Name\]/g, formData.child_name || '[Child Name]')
+                        .replace(/\[Center Name\]/g, center?.center_name || '[Center Name]'),
+                    }}
+                  >
+
                   </p>
                 </div>
               )}

@@ -19,7 +19,7 @@ const statusColors = {
 };
 
 export default function TestimonialCard({ testimonial, onStatusChange, onClick }) {
-  const typeConfig = typeIcons['audio'];
+  const typeConfig = typeIcons[testimonial.testimonial_type  || 'text'];
   const TypeIcon = typeConfig?.icon;
 
   return (

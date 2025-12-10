@@ -18,11 +18,11 @@ export default function SubmitHeader({ center, parentName, childName, promptText
       <p className="text-xl text-[#555555] mb-6">
         We'd love to hear about {childName}'s experience at {center?.center_name}
       </p>
-      {promptText && (
+      {/* {promptText && (
         <div className="max-w-2xl mx-auto bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/60 shadow-sm">
           <p className="text-lg text-[#555555] italic">"{promptText}"</p>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

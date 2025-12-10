@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Star, Send, ArrowLeft, Upload } from "lucide-react";
 
 export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting }) {
-  const apiUrl = process.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://components-trainer-essentially-indirect.trycloudflare.com/soptima/api';
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
-
+debugger
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -22,7 +22,7 @@ export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch(`${apiUrl}/api/upload`, {
+      const response = await fetch(`${apiUrl}/integrations/upload-file/`, {
         method: 'POST',
         body: formData,
       });
@@ -31,8 +31,8 @@ export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting
         throw new Error('Upload failed');
       }
       
-      const { fileUrl } = await response.json();
-      setPhotoUrl(fileUrl);
+      const { file_url } = await response.json();
+      setPhotoUrl(file_url);
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {

@@ -12,11 +12,8 @@ export default function Submit() {
   const [submitted, setSubmitted] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
-  debugger
   const linkId = urlParams.get('link');
-
   const queryClient = useQueryClient();
-
   const { data: request } = useQuery({
     queryKey: ['request', linkId],
     queryFn: async () => {
@@ -48,7 +45,7 @@ export default function Submit() {
   const submitTestimonialMutation = useMutation({
     mutationFn: async (data) => {
       // Create the testimonial
-      await Testimonial.create({
+      await Testimonial.submit({
         ...data,
         center_id: request?.center_id,
         request_id: request?.id,
@@ -59,7 +56,7 @@ export default function Submit() {
 
       // Update the request as completed
       if (request?.id) {
-        await TestimonialRequest.update(request.id, {
+        await TestimonialRequest.complete(request.id, {
           completed: true,
           completed_date: new Date().toISOString(),
         });
@@ -121,7 +118,7 @@ export default function Submit() {
               className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/60 hover:border-blue-300 hover:shadow-2xl transition-all duration-300"
               style={{ borderColor: center?.primary_color ? `${center.primary_color}33` : undefined }}
             >
-              <div 
+              <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300"
                 style={{ backgroundColor: `${center?.primary_color || '#3B82F6'}15` }}
               >
@@ -136,7 +133,7 @@ export default function Submit() {
               className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/60 hover:border-green-300 hover:shadow-2xl transition-all duration-300"
               style={{ borderColor: center?.secondary_color ? `${center.secondary_color}33` : undefined }}
             >
-              <div 
+              <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300"
                 style={{ backgroundColor: `${center?.secondary_color || '#10B981'}15` }}
               >
@@ -184,25 +181,28 @@ export default function Submit() {
     );
   }
 
-  return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <SubmitHeader
-          center={center}
-          parentName={request.parent_name}
-          childName={request.child_name}
-          promptText={template?.prompt_text}
-        />
+  else {
 
-        <RecordingInterface
-          type={selectedType}
-          request={request}
-          center={center}
-          onSubmit={(data) => submitTestimonialMutation.mutate(data)}
-          onBack={() => setSelectedType(null)}
-          isSubmitting={submitTestimonialMutation.isPending}
-        />
+    return (
+      <div className="min-h-screen p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <SubmitHeader
+            center={center}
+            parentName={request.parent_name}
+            childName={request.child_name}
+            promptText={template?.prompt_text}
+          />
+
+          <RecordingInterface
+            type={selectedType}
+            request={request}
+            center={center}
+            onSubmit={(data) => submitTestimonialMutation.mutate(data)}
+            onBack={() => setSelectedType(null)}
+            isSubmitting={submitTestimonialMutation.isPending}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
