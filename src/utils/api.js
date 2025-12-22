@@ -47,6 +47,23 @@ export const authAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+  createSubscriptionIntent: async () => {
+    try {
+      const response = await api.get('/stripe/setup-intent/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+  updateSubscriptionStatus: async () => {
+    try {
+      const response = await api.post('/stripe/subscribe/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  }
   // Add other auth-related API calls here
 };
 

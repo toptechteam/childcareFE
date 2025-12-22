@@ -54,15 +54,17 @@ export function AuthProvider({ children }) {
       
       // Store user data
       const userInfo = { 
-        ...data || {}, // Use user object from response if available
+        ...data.user || data, // Use user object from response if available
         email,
-        accessToken: data.access // Store the access token in user object for easy access
+        accessToken: data.access, // Store the access token in user object for easy access
+        subscription_active: data.user?.subscription_active || data.subscription_active || false
       };
       
       localStorage.setItem('user', JSON.stringify(userInfo));
       setUser(userInfo);
       
-      return true;
+      // Return user info including subscription status
+      return userInfo;
     } catch (error) {
       console.error('Login error:', error);
       // Clear any partial auth state on error

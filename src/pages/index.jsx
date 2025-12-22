@@ -12,8 +12,10 @@ import Home from "./Home";
 import LandingPage from "./LandingPage";
 import Login from "./Login";
 
-import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import SubscriptionCheck from '@/components/SubscriptionCheck';
+import Subscription from "./Subscription.jsx";
 
 const PAGES = {
   Dashboard,
@@ -52,7 +54,11 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return children;
+  return (
+    <SubscriptionCheck>
+      {children}
+    </SubscriptionCheck>
+  );
 }
 
 // Create a wrapper component that uses useLocation inside the Router context
@@ -108,6 +114,7 @@ function PagesContent() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/submit" element={<Submit />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/subscription" element={<Subscription />} />
                 {/* <Route path="/home" element={<Home />} /> */}
                 <Route path="*" element={<Navigate to={getRedirectPath()} replace />} />
               </Routes>

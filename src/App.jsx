@@ -1,6 +1,6 @@
-import './App.css'
-import Pages from "@/pages/index.jsx"
-import { Toaster } from "@/components/ui/toaster"
+import './App.css';
+import Pages from "@/pages/index.jsx";
+import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/AuthContext';
 
 function App() {
@@ -9,7 +9,7 @@ function App() {
       <Pages />
       <Toaster />
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;
