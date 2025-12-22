@@ -37,13 +37,46 @@ const toastVariants = cva(
   }
 );
 
-const Toast = React.forwardRef(({ className, variant, ...props }, ref) => {
+const Toast = React.forwardRef(({ 
+  className, 
+  variant, 
+  open = true, 
+  onOpenChange, 
+  children,
+  ...props 
+}, ref) => {
+  const handleOpenChange = (newOpen) => {
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
+
+  if (!open) return null;
+
   return (
     <div
       ref={ref}
-      className={cn(toastVariants({ variant }), className)}
+      className={cn(
+        toastVariants({ variant }),
+        'cursor-pointer relative',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+        'data-[state=closed]:slide-out-to-right-1/4 data-[state=open]:slide-in-from-right-1/4',
+        className
+      )}
+      onPointerDown={(e) => {
+        // Only trigger if clicking directly on the toast, not its children
+        if (e.target === e.currentTarget) {
+          handleOpenChange(false);
+        }
+      }}
+      role="alert"
+      data-state={open ? 'open' : 'closed'}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 });
 Toast.displayName = "Toast";
@@ -60,19 +93,31 @@ const ToastAction = React.forwardRef(({ className, ...props }, ref) => (
 ));
 ToastAction.displayName = "ToastAction";
 
-const ToastClose = React.forwardRef(({ className, ...props }, ref) => (
-  <button
-    ref={ref}
-    className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
-      className
-    )}
-    toast-close=""
-    {...props}
-  >
-    <X className="h-4 w-4" />
-  </button>
-));
+const ToastClose = React.forwardRef(({ className, onClick, ...props }, ref) => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up to the toast
+    if (onClick) {
+      onClick(e);
+    }
+  };
+
+  return (
+    <button
+      ref={ref}
+      type="button" // Better accessibility
+      className={cn(
+        "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+        className
+      )}
+      onClick={handleClick}
+      aria-label="Close" // Better accessibility
+      {...props}
+    >
+      <X className="h-4 w-4" />
+    </button>
+  );
+});
 ToastClose.displayName = "ToastClose";
 
 const ToastTitle = React.forwardRef(({ className, ...props }, ref) => (

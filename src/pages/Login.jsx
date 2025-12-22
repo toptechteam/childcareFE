@@ -48,6 +48,7 @@ export default function Login() {
     } catch (error) {
       toast({
         title: 'Error',
+        id: 'login-error',
         description: error.message || 'Failed to log in. Please try again.',
         variant: 'destructive',
       });
