@@ -85,7 +85,7 @@ export default function Setup() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/upload', {
+      const response = await fetch( import.meta.env.VITE_API_BASE_URL +'/integrations/upload-file/', {
         method: 'POST',
         body: formData,
       });

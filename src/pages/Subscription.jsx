@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { Elements, useStripe, useElements, CardElement, PaymentElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,170 +7,186 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from '@/components/ui/use-toast';
 import { authAPI, usersAPI } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 // Load Stripe.js asynchronously
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-const CheckoutForm = () => {
+function CheckoutForm({ clientSecret }) {
   const stripe = useStripe();
-  const { user } = useAuth();
   const elements = useElements();
-  const [isLoading, setIsLoading] = useState(false);
-  const [packages, setPackage] = useState('');
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { user, refresh } = useAuth();
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError(null);
+  const [loading, setLoading] = useState(false);
+  const [pkg, setPkg] = useState(null);
 
-    if (!stripe || !elements) {
-      return;
+  useEffect(() => {
+    const fetchPackage = async () => {
+      try {
+        const data = await usersAPI.getPackageById(user.package_id);
+        setPkg(data);
+      } catch (error) {
+        console.error('Error fetching package:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load package details',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    if (user?.package_id) {
+      fetchPackage();
     }
+  }, [user]);
 
-    setIsLoading(true);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setLoading(true);
 
     try {
-      const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: elements.getElement(CardElement),
+      const { error, setupIntent } = await stripe.confirmSetup({
+        elements,
+        redirect: 'if_required',
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard`,
+        },
       });
 
-      if (stripeError) {
-        throw new Error(stripeError.message);
+      if (error) {
+        throw new Error(error.message);
       }
       debugger
-      // Create subscription
-      await authAPI.createSubscriptionIntent({
-        paymentMethodId: paymentMethod.id,
-      });
+      if (setupIntent.status === 'succeeded') {
+        const data = await authAPI.updateSubscriptionStatus({
+          payment_method: setupIntent.payment_method,
+        });
+        toast({
+          title: 'Payment method saved',
+          description: 'Your payment method has been saved successfully',
+        });
+        if (data?.stripe?.status == 'active') {
+          const resp = refresh().then(() => navigate('/dashboard')).catch((err) => {
+            console.error('Error creating subscription intent:', err);
+          })
+        }
 
-      // Update subscription status
-      await authAPI.updateSubscriptionStatus();
 
-      toast({
-        title: 'Subscription successful!',
-        description: 'Your subscription has been activated.',
-      });
 
-      // Redirect to the intended page or dashboard
-      const from = location.state?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
+      }
     } catch (err) {
-      console.error('Subscription error:', err);
-      setError(err.message || 'An error occurred while processing your subscription');
+      console.error('Payment error:', err);
       toast({
-        title: 'Error',
-        description: err.message || 'Failed to process subscription. Please try again.',
+        title: 'Payment failed',
+        description: err.message || 'Failed to save payment method',
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-
-  useEffect(() => {
-    if (!packages)
-    {
-      fetchpackage()
-    }
-  }, []);
-
-
-  const fetchpackage = async () => {
-    debugger
-    const pack = await usersAPI.getPackageById(user?.package_id)
-    setPackage(pack)
-
+  if (!pkg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#7ACDE0]"></div>
+      </div>
+    );
   }
 
-
-  const cardStyle = {
-    style: {
-      base: {
-        color: '#1a1a1a',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '16px',
-        '::placeholder': {
-          color: '#aab7c4',
-        },
-      },
-      invalid: {
-        color: '#fa755a',
-        iconColor: '#fa755a',
-      },
-    },
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-[#7ACDE0]">Subscribe to {packages.name}</CardTitle>
-          <CardDescription className="text-[#7ACDE0]">
-            Get access to all premium features
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium"> {packages.name} - {packages.price_monthly}/{user.subscription_type}</h3>
-            <ul className="list-disc pl-5 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-              <li>  {packages.testimonials_limit} Testimonials</li>
-              <li>{packages.video_duration_limit}mb Vidoe</li>
-              {/* <li>{packages.name}</li> */}
-              <li>And more...</li>
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <div className="border rounded-md p-4">
-              <CardElement options={cardStyle} />
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-[#7ACDE0]">
+              Subscribe to {pkg.name}
+            </CardTitle>
+            <CardDescription className="text-[#7ACDE0]">
+              {pkg.description || 'Complete your subscription'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-medium">Plan Details</span>
+                <Badge variant="outline" className="bg-[#7ACDE0] text-white">
+                  {pkg.price_monthly}/month
+                </Badge>
+              </div>
+              {pkg.features && (
+                <ul className="space-y-2 mt-4">
+                  {pkg.features.map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-2">
+                      <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {error && (
-              <div className="text-red-500 text-sm">{error}</div>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            type="submit"
-            disabled={!stripe || isLoading}
-            className="w-full bg-[#7ACDE0] hover:bg-[#5ab8cc] text-white"
-          >
-            {isLoading ? 'Processing...' : 'Subscribe Now'}
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Card details
+              </label>
+              <div className="border rounded-md p-3">
+                <PaymentElement
+                  options={{
+                    layout: 'tabs',
+                    fields: {
+                      billingDetails: 'auto',
+                    },
+                  }}
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              type="submit"
+              disabled={!stripe || loading}
+              className="w-full bg-[#7ACDE0] hover:bg-[#5ab8cc] text-white"
+            >
+              {loading ? 'Processing...' : `Subscribe for $${pkg.price_monthly}/month`}
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </div>
   );
-};
+}
 
 export default function Subscription() {
   const [clientSecret, setClientSecret] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const createSubscriptionIntent = async () => {
+    const initPayment = async () => {
       try {
         const { client_secret } = await authAPI.createSubscriptionIntent();
         setClientSecret(client_secret);
       } catch (err) {
-        console.error('Error creating subscription intent:', err);
+        console.error('Error initializing payment:', err);
         setError('Failed to initialize payment. Please try again.');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
-    createSubscriptionIntent();
+    initPayment();
   }, []);
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#7ACDE0]"></div>
       </div>
     );
@@ -178,10 +194,10 @@ export default function Subscription() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-red-500">Error</CardTitle>
+            <CardTitle className="text-red-500">Error</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardFooter>
@@ -198,20 +214,16 @@ export default function Subscription() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
-      {clientSecret && (
-        <Elements
-          stripe={stripePromise}
-          options={{
-            clientSecret,
-            appearance: {
-              theme: 'stripe',
-            },
-          }}
-        >
-          <CheckoutForm />
-        </Elements>
-      )}
-    </div>
+    <Elements
+      stripe={stripePromise}
+      options={{
+        clientSecret,
+        appearance: {
+          theme: 'stripe',
+        },
+      }}
+    >
+      <CheckoutForm clientSecret={clientSecret} />
+    </Elements>
   );
 }

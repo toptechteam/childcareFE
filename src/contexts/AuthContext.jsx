@@ -77,6 +77,45 @@ export function AuthProvider({ children }) {
     }
   };
 
+
+  const refresh = async (email, password) => {
+    try {
+      const data = await authAPI.refresh();
+      debugger
+      if (!data.token) {
+        throw new Error('No access token received');
+      }
+
+      // Store tokens
+      localStorage.setItem(import.meta.env.VITE_AUTH_TOKEN_KEY || 'auth_token', data.token);
+      
+      
+      // Store user data
+      let user=localStorage.getItem('user');
+      const userInfo = { 
+        ...JSON.parse(user), // Use user object from response if available
+        email,
+        accessToken: data.token, // Store the access token in user object for easy access
+        subscription_active: true 
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      setUser(userInfo);
+      
+      // Return user info including subscription status
+      return userInfo;
+    } catch (error) {
+      console.error('Login error:', error);
+      // Clear any partial auth state on error
+      localStorage.removeItem('user');
+      localStorage.removeItem(import.meta.env.VITE_AUTH_TOKEN_KEY || 'auth_token');
+      localStorage.removeItem(import.meta.env.VITE_REFRESH_TOKEN_KEY || 'refresh_token');
+      setUser(null);
+      
+      throw error.response?.data || error.message || 'Login failed';
+    }
+  };
+
   const logout = () => {
     try {
       localStorage.removeItem('user');
@@ -94,6 +133,7 @@ export function AuthProvider({ children }) {
     user,
     isLoading,
     login,
+    refresh,
     logout,
     isAuthenticated: !!user,
   };

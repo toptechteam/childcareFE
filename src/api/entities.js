@@ -27,7 +27,7 @@ export const Center = {
   },
   update: async (id, data) => {
     try {
-      const response = await api.patch(`/centers/${id}`, data);
+      const response = await api.patch(`/centers/${id}/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

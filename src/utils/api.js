@@ -48,6 +48,15 @@ export const authAPI = {
     }
   },
 
+  refresh: async () => {
+    try {
+      const response = await api.get('/auth/token/refresh');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
   createSubscriptionIntent: async () => {
     try {
       const response = await api.get('/stripe/setup-intent/');
