@@ -29,7 +29,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Handle unauthorized access
       localStorage.removeItem(import.meta.env.VITE_AUTH_TOKEN_KEY);
-      window.location.href = '/login';
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -135,6 +135,16 @@ export const usersAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+  getPackageById: async (id) => {
+    try {
+      const response = await api.get(`/packages/${id}/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
 
   createPackage: async (data) => {
     try {

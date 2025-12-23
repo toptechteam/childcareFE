@@ -33,12 +33,13 @@ const PAGES = {
 };
 
 function _getCurrentPage(url) {
+  if (url === '/') return 'LandingPage';
   if (url.endsWith('/')) url = url.slice(0, -1);
   let urlLastPart = url.split('/').pop();
   if (urlLastPart.includes('?')) urlLastPart = urlLastPart.split('?')[0];
 
   const pageName = Object.keys(PAGES).find(page => page.toLowerCase() === urlLastPart.toLowerCase());
-  return pageName || Object.keys(PAGES)[0];
+  return pageName || 'LandingPage';
 }
 
 // A wrapper that renders children only if user is authenticated
@@ -50,8 +51,8 @@ function ProtectedRoute({ children }) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!isAuthenticated && location.pathname !== '/login') {
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   return (
@@ -59,6 +60,41 @@ function ProtectedRoute({ children }) {
       {children}
     </SubscriptionCheck>
   );
+}
+
+
+// Admin route wrapper
+function AdminRoute({ children }) {
+
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  // Redirect if not authenticated or not an admin
+  if (isAuthenticated && user && (user.role == 'admin' && user.is_superuser)) {
+    return children
+  }
+}
+
+// User route wrapper
+function UserRoute({ children }) {
+  debugger
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  // Redirect if not authenticated or is an admin
+  if (isAuthenticated && user && (user.role === 'admin' && !user.is_superuser)) {
+    return children
+  }
+
+
 }
 
 // Create a wrapper component that uses useLocation inside the Router context
@@ -71,21 +107,24 @@ function PagesContent() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // Redirect unauthenticated users
-  if (!isAuthenticated && !['/login', '/landing'].includes(location.pathname)) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // ✅ Determine redirect target based on user role
+  // Determine redirect target based on user role
   const getRedirectPath = () => {
-    if (!isAuthenticated) return '/login';
+    if (!isAuthenticated) return '/';
     if (user?.role === 'admin' && user?.is_superuser) return '/admin';
     return '/dashboard';
   };
 
+  // Redirect authenticated users away from landing/login to their dashboard
+  if (isAuthenticated && ['/', '/login'].includes(location.pathname)) {
+    return <Navigate to={getRedirectPath()} replace />;
+  }
+
   return (
     <Routes>
       {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="setup" element={<Setup />} />
+
       <Route
         path="/login"
         element={
@@ -96,7 +135,6 @@ function PagesContent() {
           )
         }
       />
-      <Route path="/landing" element={<LandingPage />} />
 
       {/* Protected Routes */}
       <Route
@@ -104,19 +142,27 @@ function PagesContent() {
           <ProtectedRoute>
             <Layout currentPageName={currentPage}>
               <Routes>
-                <Route path="/" element={<Navigate to={getRedirectPath()} replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/setup" element={<Setup />} />
-                <Route path="/request" element={<Request />} />
-                <Route path="/testimonials" element={<Testimonials />} />
-                <Route path="/templates" element={<Templates />} />
-                <Route path="/embed" element={<Embed />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/submit" element={<Submit />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/subscription" element={<Subscription />} />
-                {/* <Route path="/home" element={<Home />} /> */}
-                <Route path="*" element={<Navigate to={getRedirectPath()} replace />} />
+                {/* User Routes */}
+                <Route element={<UserRoute><Outlet /></UserRoute>}>
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="request" element={<Request />} />
+                  <Route path="testimonials" element={<Testimonials />} />
+                  <Route path="templates" element={<Templates />} />
+                  <Route path="embed" element={<Embed />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="submit" element={<Submit />} />
+                  <Route path="subscription" element={<Subscription />} />
+                </Route>
+
+                {/* Admin Routes */}
+                {/* <Route element={<AdminRoute><Outlet /></AdminRoute>}> */}
+                  <Route path="admin" element={<AdminDashboard />} />
+                  <Route path="templates" element={<Templates />} />
+                {/* </Route> */}
+
+                {/* Catch-all route */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

@@ -5,15 +5,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { authAPI } from '@/utils/api';
+import { authAPI, usersAPI } from '@/utils/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Load Stripe.js asynchronously
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const CheckoutForm = () => {
   const stripe = useStripe();
+  const { user } = useAuth();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
+  const [packages, setPackage] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,6 +70,23 @@ const CheckoutForm = () => {
     }
   };
 
+
+  useEffect(() => {
+    if (!packages)
+    {
+      fetchpackage()
+    }
+  }, []);
+
+
+  const fetchpackage = async () => {
+    debugger
+    const pack = await usersAPI.getPackageById(user?.package_id)
+    setPackage(pack)
+
+  }
+
+
   const cardStyle = {
     style: {
       base: {
@@ -88,18 +108,18 @@ const CheckoutForm = () => {
     <form onSubmit={handleSubmit} className="w-full">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-[#7ACDE0]">Subscribe to Pro</CardTitle>
+          <CardTitle className="text-2xl font-bold text-[#7ACDE0]">Subscribe to {packages.name}</CardTitle>
           <CardDescription className="text-[#7ACDE0]">
             Get access to all premium features
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <h3 className="text-lg font-medium">Pro Plan - $9.99/month</h3>
+            <h3 className="text-lg font-medium"> {packages.name} - {packages.price_monthly}/{user.subscription_type}</h3>
             <ul className="list-disc pl-5 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-              <li>Unlimited centers</li>
-              <li>Advanced analytics</li>
-              <li>Priority support</li>
+              <li>  {packages.testimonials_limit} Testimonials</li>
+              <li>{packages.video_duration_limit}mb Vidoe</li>
+              {/* <li>{packages.name}</li> */}
               <li>And more...</li>
             </ul>
           </div>

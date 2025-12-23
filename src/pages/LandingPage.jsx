@@ -149,12 +149,12 @@ export default function LandingPage() {
               className="h-12 w-auto"
             />
             <div className="flex items-center gap-4">
-              <a href="https://app.childcarestories.com.au">
+              <a href="/login">
                 <Button variant="ghost" className="text-[#555555] hover:text-[#000000]">
                   Sign In
                 </Button>
               </a>
-              <a href="https://app.childcarestories.com.au/Setup">
+              <a href="/setup">
                 <Button className="bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white">
                   Start Free Trial
                 </Button>

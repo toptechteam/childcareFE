@@ -21,6 +21,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
     contact_email: "",
     contact_phone: "",
     subscription_plan: "trial",
+    subscription_type: "monthly",
     is_trial: true,
   });
 
@@ -43,7 +44,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
       const centerData = {
         ...data,
         trial_end_date: data.is_trial ? trialEndDate : null,
-        status:  'active',
+        status: 'active',
         monthly_testimonials_limit: limits.testimonials,
         video_duration_limit: limits.videoDuration,
         testimonials_this_month: 0,
@@ -65,7 +66,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    formData.subscription_plan= parseInt(formData.subscription_plan);
+    formData.subscription_plan = parseInt(formData.subscription_plan);
     createCenterMutation.mutate(formData);
   };
 
@@ -127,12 +128,45 @@ export default function AddClientModal({ onClose, onSuccess }) {
                   {formData.subscription_plan && packages.find(p => p.id.toString() === formData.subscription_plan.toString())?.name || 'Select a plan'}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="p-2">
                 {packages.map((pkg) => (
-                  <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                   {pkg.name} – ${pkg.price_monthly}/month
+                  <SelectItem
+                    key={pkg.id}
+                    value={pkg.id.toString()}
+                    className="py-3 px-4 hover:bg-gray-50 rounded-md transition-colors"
+                  >
+                    <div className="flex flex-col space-y-1">
+                      <div className="font-medium text-gray-900">{pkg.name}</div>
+                      <div className="flex justify-between text-sm text-gray-600" style={{ display: 'flex', gap: '1rem' }}>
+                        <span>${pkg.price_monthly}<span className="text-xs text-gray-500">/month</span></span>
+                        <span>${pkg.price_annual}<span className="text-xs text-gray-500">/year</span></span>
+                      </div>
+                    </div>
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="subscription_type">Plan Type</Label>
+            <Select
+              value={formData.subscription_plan.toString()}
+              onValueChange={(value) => {
+                setFormData(prev => ({ ...prev, subscription_type: value }));
+              }}
+            >
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Select a plan">
+                  {formData.subscription_type === 'monthly' ? 'Monthly' : 'Annually'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="p-2">
+                <SelectItem key="monthly" value="monthly"
+                  className="py-3 px-4 hover:bg-gray-50 rounded-md transition-colors"
+                > Monthly </SelectItem>
+                <SelectItem key="annually" value="annually"
+                  className="py-3 px-4 hover:bg-gray-50 rounded-md transition-colors"
+                > Annually </SelectItem>
               </SelectContent>
             </Select>
           </div>
