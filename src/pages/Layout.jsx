@@ -30,6 +30,7 @@ import {
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  // const {user}=useAuth();
   const isSubmitPage = currentPageName === "Submit";
 
   const { logout } = useAuth();
@@ -49,10 +50,10 @@ export default function Layout({ children, currentPageName }) {
       icon: Shield,
     },
     {
-    title: "Request Template",
-    url:  createPageUrl("templates"),
-    icon: FileText, // Make sure to import FileText from lucide-react
-  },
+      title: "Request Template",
+      url: createPageUrl("templates"),
+      icon: FileText, // Make sure to import FileText from lucide-react
+    },
   ];
 
   const navigationItems = [
@@ -91,6 +92,11 @@ export default function Layout({ children, currentPageName }) {
   if (isSubmitPage) {
     return <div className="min-h-screen bg-white">{children}</div>;
   }
+
+  const trialEndDate = new Date(user?.trial_end_date);
+  const today = new Date();
+  const timeDiff = trialEndDate - today;
+  const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 
   return (
     <SidebarProvider>
@@ -173,23 +179,23 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-gray-100 p-4">
-            {!isAdmin && (<div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
+            {!isAdmin &&  user.trial_active &&(<div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
               <p className="text-xs font-semibold text-[#000000] mb-1">7-Day Free Trial</p>
-              <p className="text-xs text-[#555555]">5 days remaining</p>
-              <Link to={createPageUrl("Settings")}>
+              <p className="text-xs text-[#555555]">{daysRemaining} -  days remaining</p>
+              {/* <Link to={createPageUrl("Settings")}>
                 <button className="mt-2 w-full bg-[#8AE0F2] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#7ACDE0] transition-all duration-200">
                   Upgrade Now
                 </button>
-              </Link>
+              </Link> */}
             </div>
             )}
             <div className="mt-3 text-center">
-                <button 
-                  onClick={handleLogout}
-                  className="mb-2 w-full bg-[#8AE0F2] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#7ACDE0] transition-all duration-200"
-                >
-                  Logout
-                </button>
+              <button
+                onClick={handleLogout}
+                className="mb-2 w-full bg-[#8AE0F2] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#7ACDE0] transition-all duration-200"
+              >
+                Logout
+              </button>
               <p className="tagline-text text-xs text-[#555555]">
                 Powered by{' '}
                 <a href="https://childcarestories.com.au" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#8AE0F2] hover:underline">
