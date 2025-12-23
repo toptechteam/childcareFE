@@ -28,9 +28,9 @@ export default function Testimonials() {
   });
 
   const filteredTestimonials = testimonials.filter(t => {
-    const matchesFilter = filter === "all" || 
+    const matchesFilter = filter === "all" ||
       (filter === "new" && t.status === "new") ||
-      (filter === "approved" && (t.status === "approved" || t.status === "published")) ||
+      (filter === "approved" && (t.status === "approved" || t.is_publish)) ||
       (filter === "video" && t.testimonial_type === "video") ||
       (filter === "audio" && t.testimonial_type === "audio") ||
       (filter === "text" && t.testimonial_type === "text");
@@ -43,11 +43,20 @@ export default function Testimonials() {
   });
 
   const handleStatusChange = (testimonial, newStatus) => {
+    let data = {}; // Initialize as empty object instead of null
+    
+    if (newStatus === 'approved') {
+      data.status = newStatus;
+    }
+    if (newStatus === 'published') {
+      data.is_publish = true;
+    }
+
     updateTestimonialMutation.mutate({
       id: testimonial.id,
-      data: { status: newStatus }
+      data: data
     });
-  };
+};
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">

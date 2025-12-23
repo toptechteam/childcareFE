@@ -19,7 +19,7 @@ const statusColors = {
 };
 
 export default function TestimonialCard({ testimonial, onStatusChange, onClick }) {
-  const typeConfig = typeIcons[testimonial.testimonial_type  || 'text'];
+  const typeConfig = typeIcons[testimonial.testimonial_type || 'text'];
   const TypeIcon = typeConfig?.icon;
 
   return (
@@ -29,9 +29,12 @@ export default function TestimonialCard({ testimonial, onStatusChange, onClick }
           <div className={`w-12 h-12 ${typeConfig.bg} rounded-xl flex items-center justify-center`}>
             <TypeIcon className={`w-6 h-6 ${typeConfig.color}`} />
           </div>
-          <Badge className={statusColors[testimonial.status]}>
+          {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
             {testimonial.status}
-          </Badge>
+          </Badge>}
+          {testimonial.status == 'approved' && testimonial.is_publish && <Badge className={statusColors['published']}>
+            Published
+          </Badge>}
         </div>
 
         <h3 className="font-bold text-lg text-[#000000] mb-1">{testimonial.parent_name}</h3>

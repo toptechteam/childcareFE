@@ -39,9 +39,16 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
             <div>
               <div className="flex items-center gap-2">
                 <span>{testimonial.parent_name}</span>
-                <Badge className={statusColors[testimonial.status]}>
+                {/* <Badge className={statusColors[testimonial.status]}>
                   {testimonial.status}
-                </Badge>
+                </Badge> */}
+
+                {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
+                  {testimonial.status}
+                </Badge>}
+                {testimonial.status == 'approved' && testimonial.is_publish && <Badge className={statusColors['published']}>
+                  Published
+                </Badge>}
               </div>
               <p className="text-sm font-normal text-gray-500">
                 {testimonial.child_name}'s {testimonial.relationship}
@@ -79,7 +86,7 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
 
           {testimonial.photo_url && (
             <div className="rounded-xl overflow-hidden">
-              <img src={testimonial.photo_url} alt="Testimonial" className="w-full h-auto" />
+              <img src={testimonial.file_url} alt="Testimonial" className="w-full h-auto" />
             </div>
           )}
 
@@ -125,7 +132,7 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
                 </>
               )}
 
-              {testimonial.status === 'approved' && (
+              {testimonial.status === 'approved' && !testimonial.is_publish && (
                 <Button
                   size="sm"
                   onClick={() => {

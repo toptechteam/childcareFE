@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Center, Testimonial } from "@/api/entities";
+import { Center, Testimonial, TestimonialRequest } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Code, Copy, Check, Eye } from "lucide-react";
@@ -23,7 +23,7 @@ export default function Embed() {
 
   const { data: testimonials = [] } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: () => Testimonial.find({ sort: '-created_date' }),
+    queryFn: () => TestimonialRequest.find({ status: 'approved', sort: '-created_date' }),
   });
 
   const approvedTestimonials = testimonials.filter(
@@ -34,15 +34,15 @@ export default function Embed() {
 <div id="childcare-testimonials"></div>
 <script>
   (function() {
-    fetch('https://childcarestories.com.au/api/testimonials')
+    fetch('https://childcarestories.com.au/api/testimonials/${testimonials[0]?.center}')
       .then(res => res.json())
       .then(testimonials => {
         const container = document.getElementById('childcare-testimonials');
         container.innerHTML = testimonials.map(t => \`
           <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;">
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-              <div style="font-weight: 600; color: #1f2937;">\${t.parent}</div>
-              <div style="color: #6b7280; font-size: 14px;">• \${t.child}'s \${t.relationship || 'Parent'}</div>
+              <div style="font-weight: 600; color: #1f2937;">\${t.parent_name}</div>
+              <div style="color: #6b7280; font-size: 14px;">• \${t.child_name}'s \${t.relationship || 'Parent'}</div>
             </div>
             <div style="color: #4b5563; line-height: 1.6;">\${t.content || 'Wonderful experience!'}</div>
             <div style="margin-top: 12px; color: #fbbf24;">\${'★'.repeat(t.rating || 5)}</div>

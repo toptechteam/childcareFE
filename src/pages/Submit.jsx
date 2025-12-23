@@ -17,20 +17,21 @@ export default function Submit() {
   const { data: request } = useQuery({
     queryKey: ['request', linkId],
     queryFn: async () => {
-      const requests = await TestimonialRequest.find();
-      return requests.find(r => r.unique_link === linkId) || null;
+      const requests = await TestimonialRequest.testimonialRequestDetail(linkId);
+      debugger
+      return requests
     },
     enabled: !!linkId,
   });
 
-  const { data: center } = useQuery({
-    queryKey: ['center', request?.center],
-    queryFn: async () => {
-      if (!request?.center) return null;
-      return Center.findById(request.center);
-    },
-    enabled: !!request?.center,
-  });
+  // const { data: center } = useQuery({
+  //   queryKey: ['center', request?.center],
+  //   queryFn: async () => {
+  //     if (!request?.center) return null;
+  //     return Center.findById(request.center);
+  //   },
+  //   enabled: !!request?.center,
+  // });
 
   const { data: template } = useQuery({
     queryKey: ['template', request?.template],
@@ -47,8 +48,8 @@ export default function Submit() {
       // Create the testimonial
       await Testimonial.submit({
         ...data,
-        center_id: request?.center_id,
-        request_id: request?.id,
+        center_id: request?.center?.center_id,
+        request_id: request?.testimonial?.id,
         testimonial_type: selectedType,
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -93,8 +94,8 @@ export default function Submit() {
           <p className="text-gray-600 mb-6">
             Your testimonial has been submitted successfully. We truly appreciate you taking the time to share your experience!
           </p>
-          {center?.logo_url && (
-            <img src={center.logo_url} alt="Center logo" className="h-16 mx-auto opacity-50" />
+          {request?.center?.logo_url && (
+            <img src={request?.center.logo_url} alt="Center logo" className="h-16 mx-auto opacity-50" />
           )}
         </div>
       </div>
@@ -106,9 +107,9 @@ export default function Submit() {
       <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <SubmitHeader
-            center={center}
-            parentName={request.parent_name}
-            childName={request.child_name}
+            center={request?.center}
+            parentName={request?.testimonial?.parent_name}
+            childName={request?.testimonial?.child_name}
             promptText={template?.prompt_text}
           />
 
@@ -116,13 +117,13 @@ export default function Submit() {
             <button
               onClick={() => setSelectedType('video')}
               className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/60 hover:border-blue-300 hover:shadow-2xl transition-all duration-300"
-              style={{ borderColor: center?.primary_color ? `${center.primary_color}33` : undefined }}
+              style={{ borderColor: request?.center?.primary_color ? `${request?.center?.primary_color}33` : undefined }}
             >
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300"
-                style={{ backgroundColor: `${center?.primary_color || '#3B82F6'}15` }}
+                style={{ backgroundColor: `${request?.center?.primary_color || '#3B82F6'}15` }}
               >
-                <Video className="w-10 h-10" style={{ color: center?.primary_color || '#3B82F6' }} />
+                <Video className="w-10 h-10" style={{ color: request?.center?.primary_color || '#3B82F6' }} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Record Video</h3>
               <p className="text-gray-600 text-sm">Share your story on camera</p>
@@ -131,13 +132,13 @@ export default function Submit() {
             <button
               onClick={() => setSelectedType('audio')}
               className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/60 hover:border-green-300 hover:shadow-2xl transition-all duration-300"
-              style={{ borderColor: center?.secondary_color ? `${center.secondary_color}33` : undefined }}
+              style={{ borderColor: request?.center?.secondary_color ? `${request?.center?.secondary_color}33` : undefined }}
             >
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300"
-                style={{ backgroundColor: `${center?.secondary_color || '#10B981'}15` }}
+                style={{ backgroundColor: `${request?.center?.secondary_color || '#10B981'}15` }}
               >
-                <Mic className="w-10 h-10" style={{ color: center?.secondary_color || '#10B981' }} />
+                <Mic className="w-10 h-10" style={{ color: request?.center?.secondary_color || '#10B981' }} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Record Audio</h3>
               <p className="text-gray-600 text-sm">Voice your thoughts</p>
@@ -164,9 +165,9 @@ export default function Submit() {
       <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-3xl mx-auto">
           <SubmitHeader
-            center={center}
-            parentName={request?.parent_name}
-            childName={request?.child_name}
+            center={request?.center}
+            parentName={request?.testimonial?.parent_name}
+            childName={request?.testimonial?.child_name}
             promptText={template?.prompt_text}
           />
 
@@ -187,16 +188,16 @@ export default function Submit() {
       <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <SubmitHeader
-            center={center}
-            parentName={request.parent_name}
-            childName={request.child_name}
+            center={request?.center}
+            parentName={request.testimonial?.parent_name}
+            childName={request.testimonial?.child_name}
             promptText={template?.prompt_text}
           />
 
           <RecordingInterface
             type={selectedType}
-            request={request}
-            center={center}
+            request={request?.testimonial}
+            center={request?.center}
             onSubmit={(data) => submitTestimonialMutation.mutate(data)}
             onBack={() => setSelectedType(null)}
             isSubmitting={submitTestimonialMutation.isPending}

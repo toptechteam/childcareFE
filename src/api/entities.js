@@ -135,6 +135,15 @@ export const TestimonialRequest = {
       throw error.response?.data || error.message;
     }
   },
+
+  testimonialRequestDetail: async (linkId) => {
+    try {
+      const response = await api.get('/testimonial-request-detail?unique_link='+linkId+'');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
   complete: async (id,data) => {
     try {
       const response = await api.post('/testimonial-request-completed/'+id, data);

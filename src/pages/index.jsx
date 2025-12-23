@@ -124,6 +124,7 @@ function PagesContent() {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="setup" element={<Setup />} />
+      <Route path="submit" element={<Submit />} />
 
       <Route
         path="/login"
@@ -151,7 +152,6 @@ function PagesContent() {
                   <Route path="templates" element={<Templates />} />
                   <Route path="embed" element={<Embed />} />
                   <Route path="settings" element={<Settings />} />
-                  <Route path="submit" element={<Submit />} />
                   <Route path="subscription" element={<Subscription />} />
                 </Route>
 
