@@ -104,7 +104,7 @@ export default function ClientsList({ centers }) {
       {selectedCenter && (
         <ClientDetailsModal
           center={selectedCenter}
-          onClose={() => setSelectedCenter(null)}
+          onClose={() => setSelectedCenter( null)}
         />
       )}
     </>

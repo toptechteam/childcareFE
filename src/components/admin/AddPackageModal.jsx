@@ -12,16 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "../ui/use-toast";
 
-export default function AddPackageModal({ onClose, onSuccess, plan }) {
+export default function AddPackageModal({ onClose, onSuccessPackages = () => { }, plan }) {
   const isEditMode = !!plan;
-  
+
   const [formData, setFormData] = useState({
     name: plan?.name || "",
     description: plan?.description || "",
     testimonials_limit: plan?.testimonials_limit || "",
     branding_options: plan?.branding_options || false,
-    price_monthly: plan?.price_monthly || "",  
+    price_monthly: plan?.price_monthly || "",
     price_annual: plan?.price_annual || "",
     currency: plan?.currency || "usd",
     active: plan?.active ?? true,
@@ -29,8 +30,8 @@ export default function AddPackageModal({ onClose, onSuccess, plan }) {
   });
 
   const packageMutation = useMutation({
-    mutationFn: (data) => 
-      isEditMode 
+    mutationFn: (data) => {
+      return isEditMode
         ? usersAPI.updatePackage(plan.id, {
           ...data,
           testimonials_limit: Number(data.testimonials_limit),
@@ -42,9 +43,22 @@ export default function AddPackageModal({ onClose, onSuccess, plan }) {
           testimonials_limit: Number(data.testimonials_limit),
           price_monthly: Number(data.price_monthly),
           price_annual: Number(data.price_annual),
-        }),
+        });
+    },
     onSuccess: () => {
-      onSuccess();
+      try {
+        if (typeof onSuccessPackages === 'function') {
+          toast({
+            title: 'Success',
+            description: isEditMode ?  'Package updated successfully' : 'Package created successfully',
+          });
+          onSuccessPackages();
+        }
+        onClose();
+      } catch (error) {
+        console.error("Error in onSuccess callback:", error);
+        onClose(); // Ensure modal still closes even if there's an error
+      }
     },
   });
 

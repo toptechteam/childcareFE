@@ -163,6 +163,15 @@ export const usersAPI = {
       throw error.response?.data || error.message;
     }
   },
+
+   deletePackage: async (id) => {
+    try {
+      const response = await api.delete(`/packages/${id}/`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
   // Add other user-related API calls here
 };
 

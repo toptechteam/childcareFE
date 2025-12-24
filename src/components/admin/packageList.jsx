@@ -1,10 +1,23 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import { format } from "date-fns";
 import ClientDetailsModal from "./ClientDetailsModal";
 import AddPackageModal from "./AddPackageModal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { usersAPI } from "@/utils/api";
+import { toast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const planStatusColors = {
   active: "bg-green-100 text-green-800",
@@ -13,6 +26,38 @@ const planStatusColors = {
 
 export default function PackageList({ plans }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [planToDelete, setPlanToDelete] = useState(null);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (planId) => usersAPI.deletePackage(planId),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Package deleted successfully',
+      });
+      queryClient.invalidateQueries('packages');
+      setPlanToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete package',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDeleteClick = (plan, e) => {
+    e.stopPropagation();
+    setPlanToDelete(plan);
+  };
+
+  const handleConfirmDelete = () => {
+    if (planToDelete) {
+      deleteMutation.mutate(planToDelete.id);
+    }
+  };
 
   if (!plans || plans.length === 0) {
     return (
@@ -81,6 +126,19 @@ export default function PackageList({ plans }) {
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => handleDeleteClick(plan, e)}
+                className="border-[red] text-[red] hover:bg-[red]/10"
+                disabled={deleteMutation.isLoading}
+              >
+                {deleteMutation.isLoading && planToDelete?.id === plan.id ? (
+                  'Deleting...'
+                ) : (
+                  <Trash className="w-4 h-4 text-[red]" />
+                )}
+              </Button>
             </div>
           </div>
         ))}
@@ -93,6 +151,30 @@ export default function PackageList({ plans }) {
           onClose={() => setSelectedPlan(null)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!planToDelete} onOpenChange={(open) => !open && setPlanToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the package "{planToDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isLoading}
+            >
+              {deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

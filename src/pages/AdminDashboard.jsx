@@ -186,8 +186,9 @@ export default function AdminDashboard() {
       {showAddPackageModal && (
         <AddPackageModal
           onClose={() => setshowAddPackageModal(false)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['allCenters'] });
+          onSuccessPackages={() => {
+            debugger
+            queryClient.invalidateQueries({ queryKey: ['allPackages'] });
             setshowAddPackageModal(false);
           }}
         />

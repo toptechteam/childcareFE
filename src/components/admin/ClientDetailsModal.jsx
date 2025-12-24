@@ -38,7 +38,7 @@ export default function ClientDetailsModal({ center, onClose }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("info");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+
   // Edit form state
   const [editData, setEditData] = useState({
     center_name: center.center_name || "",
@@ -58,7 +58,7 @@ export default function ClientDetailsModal({ center, onClose }) {
 
   const [selectedPlan, setSelectedPlan] = useState(center.subscription_plan?.toString() || '');
   const [selectedStatus, setSelectedStatus] = useState(center.is_trial ? 'trial' : 'active');
-  
+
   // Update selected plan when center data changes
   useEffect(() => {
     if (center.subscription_plan) {
@@ -67,65 +67,122 @@ export default function ClientDetailsModal({ center, onClose }) {
     setSelectedStatus(center.is_trial ? 'trial' : 'active');
   }, [center]);
 
- const updateCenterMutation = useMutation({
-  mutationFn: async (updates) => {
-    debugger
-    return usersAPI.updateCenter(center.id, updates);
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['allCenters'] });
-    toast({
-      title: "Success",
-      description: "Center updated successfully",
-      variant: "default",
-    });
-  },
-  onError: (error) => {
-    console.error('Error updating center:', error);
-    toast({
-      title: "Error",
-      description: error.message || "Failed to update center",
-      variant: "destructive",
-    });
-  },
-});
-
-  const { toast } = useToast();
-
-  const deleteCenterMutation = useMutation({
-    mutationFn: async () => {
-      return usersAPI.deleteCenter(center.id);
+  const updateCenterMutation = useMutation({
+    mutationFn: async (updates) => {
+      return usersAPI.updateCenter(center.id, updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allCenters'] });
+      toast({
+        title: "Success",
+        description: "Center updated successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating center:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update center",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { toast } = useToast();
+
+  // Fetch packages data - always call the hook at the top level
+  const {
+    data: packages = [],
+    isLoading: isLoadingPackages,
+    error: packagesError
+  } = useQuery({
+    queryKey: ['packages'],
+    queryFn: () => usersAPI.getPackageList(),
+    enabled: !!center?.subscription_plan, // Only fetch if there's a subscription plan
+  });
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!center?.id) return;
+    debugger
+    setIsDeleting(true);
+    try {
+      const resp = await usersAPI.deleteCenter(center.id);
+      debugger
+      await queryClient.invalidateQueries({ queryKey: ['allCenters'] });
       toast({
         title: "Success",
         description: "Center deleted successfully",
         variant: "default",
       });
       onClose();
-    },
-    onError: (error) => {
+    } catch (error) {
       console.error('Error deleting center:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete center",
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  // If there's no subscription plan, return early with the dialog content
+  if (!center?.subscription_plan) {
+    return (
+      <Dialog open={!!center} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>No Subscription Found</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>This center does not have an active subscription plan.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show loading state
+  if (isLoadingPackages) {
+    return (
+      <Dialog open={!!center} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[425px]">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8AE0F2]"></div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show error state
+  if (packagesError) {
+    return (
+      <Dialog open={!!center} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[425px]">
+          <div className="text-center py-8 text-red-500">
+            <p>Failed to load packages. Please try again later.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+
 
   const handleUpdateInfo = () => {
     updateCenterMutation.mutate(editData);
   };
 
   const handleUpdateSubscription = () => {
-    const planInfo = planDetails[selectedPlan];
+    const planInfo = packages.find((plan) => plan.id.toString() === selectedPlan)
     updateCenterMutation.mutate({
       subscription_plan: selectedPlan,
-      subscription_status: selectedStatus,
-      monthly_testimonials_limit: planInfo.testimonials,
-      video_duration_limit: planInfo.videoDuration,
+      subscription_plan_info: planInfo,
+      is_trial: selectedStatus === 'trial',
     });
   };
 
@@ -136,9 +193,7 @@ export default function ClientDetailsModal({ center, onClose }) {
     });
   };
 
-  const handleDelete = () => {
-    deleteCenterMutation.mutate();
-  };
+
 
   return (
     <>
@@ -156,8 +211,8 @@ export default function ClientDetailsModal({ center, onClose }) {
               <div>
                 <span className="block text-[#000000]">{center.center_name}</span>
                 <div className="flex gap-2 mt-1">
-                  <Badge className="bg-blue-100 text-blue-800">{center.subscription_plan}</Badge>
-                  <Badge className="bg-green-100 text-green-800">{center.subscription_status}</Badge>
+                  <Badge className="bg-blue-100 text-blue-800">{center.subscription_plan_name}</Badge>
+                  <Badge className="bg-green-100 text-green-800">{center.is_trial ? 'Trial' : 'Active'}</Badge>
                 </div>
               </div>
             </DialogTitle>
@@ -182,7 +237,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                     <Input
                       id="center_name"
                       value={editData.center_name}
-                      onChange={(e) => setEditData({...editData, center_name: e.target.value})}
+                      onChange={(e) => setEditData({ ...editData, center_name: e.target.value })}
                       className="mt-1"
                     />
                   </div>
@@ -193,7 +248,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                         id="contact_email"
                         type="email"
                         value={editData.contact_email}
-                        onChange={(e) => setEditData({...editData, contact_email: e.target.value})}
+                        onChange={(e) => setEditData({ ...editData, contact_email: e.target.value })}
                         className="mt-1"
                       />
                     </div>
@@ -202,7 +257,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                       <Input
                         id="contact_phone"
                         value={editData.contact_phone}
-                        onChange={(e) => setEditData({...editData, contact_phone: e.target.value})}
+                        onChange={(e) => setEditData({ ...editData, contact_phone: e.target.value })}
                         className="mt-1"
                       />
                     </div>
@@ -212,7 +267,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                     <Input
                       id="website_url"
                       value={editData.website_url}
-                      onChange={(e) => setEditData({...editData, website_url: e.target.value})}
+                      onChange={(e) => setEditData({ ...editData, website_url: e.target.value })}
                       className="mt-1"
                     />
                   </div>
@@ -221,7 +276,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                     <Input
                       id="address"
                       value={editData.address}
-                      onChange={(e) => setEditData({...editData, address: e.target.value})}
+                      onChange={(e) => setEditData({ ...editData, address: e.target.value })}
                       className="mt-1"
                     />
                   </div>
@@ -297,7 +352,7 @@ export default function ClientDetailsModal({ center, onClose }) {
                   <span className="text-lg font-normal"> /month</span>
                 </p>
                 <p className="text-white/80 text-sm">
-                  {packages.find(p => p.id === center.subscription_plan)?.testimonials_limit || 0} testimonials • 
+                  {packages.find(p => p.id === center.subscription_plan)?.testimonials_limit || 0} testimonials •
                   {Math.floor((packages.find(p => p.id === center.subscription_plan)?.video_duration_limit || 0) / 60)} min videos
                 </p>
               </div>
@@ -344,15 +399,15 @@ export default function ClientDetailsModal({ center, onClose }) {
 
                   <Button
                     onClick={handleUpdateSubscription}
-                    disabled={updateCenterMutation.isPending}
+                    disabled={isDeleting}
                     className="w-full bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
                   >
-                    {updateCenterMutation.isPending ? "Updating..." : "Update Subscription"}
+                    {isDeleting ? "Updating..." : "Update Subscription"}
                   </Button>
                 </div>
               </div>
 
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+              {/* <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                 <h4 className="font-semibold text-blue-900 mb-2">Plan Comparison</h4>
                 <div className="space-y-2 text-sm">
                   {packages.map((pkg) => (
@@ -362,12 +417,12 @@ export default function ClientDetailsModal({ center, onClose }) {
                       </span>
                       <span className="text-blue-600">
                         {pkg.testimonials_limit === 999999 ? 'Unlimited' : pkg.testimonials_limit} testimonials 
-                        {/*, {pkg.video_duration_limit / 60} min videos */}
+                        , {pkg.video_duration_limit / 60} min videos
                       </span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </div> */}
             </TabsContent>
 
             <TabsContent value="danger" className="space-y-4 mt-4">
@@ -431,7 +486,7 @@ export default function ClientDetailsModal({ center, onClose }) {
               onClick={handleDelete}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleteCenterMutation.isPending ? "Deleting..." : "Yes, Delete Client"}
+              {isDeleting ? "Deleting..." : "Yes, Delete Client"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
