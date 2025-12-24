@@ -154,11 +154,11 @@ export default function LandingPage() {
                   Sign In
                 </Button>
               </a>
-              {/* <a href="/setup">
+              <a href="/setup">
                 <Button className="bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white">
                   Start Free Trial
                 </Button>
-              </a> */}
+              </a>
             </div>
           </div>
         </div>

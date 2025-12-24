@@ -19,7 +19,7 @@ export const Center = {
   },
   create: async (data) => {
     try {
-      const response = await api.post('/centers', data);
+      const response = await api.post('/centers/', data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
