@@ -7,6 +7,7 @@ import { FileText, FileTextIcon, Heart, Home, ThumbsUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AddTemplateModal from "@/components/admin/AddTemplateModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const scenarioIcons = {
   general: Heart,
@@ -23,6 +24,7 @@ const scenarioColors = {
 };
 
 export default function Templates() {
+  const { user } = useAuth();
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
     queryFn: () => Template.find(),
@@ -40,13 +42,13 @@ export default function Templates() {
           </h1>
           <p className="text-[#555555]">Manage and review parent testimonials</p>
         </div>
-        <Button
-          onClick={() =>{ setshowAddTemplateModal(true)}}
+        {user?.role === 'admin' && user?.is_superuser && <Button
+          onClick={() => { setshowAddTemplateModal(true) }}
           className="whitespace-nowrap"
         >
           <FileText className="mr-2 h-4 w-4" />
           Request Template
-        </Button>
+        </Button>}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {templates.map((template) => {
