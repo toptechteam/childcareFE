@@ -156,10 +156,10 @@ function PagesContent() {
                 </Route>
 
                 {/* Admin Routes */}
-                {/* <Route element={<AdminRoute><Outlet /></AdminRoute>}> */}
+                <Route element={<AdminRoute><Outlet /></AdminRoute>}>
                   <Route path="admin" element={<AdminDashboard />} />
                   <Route path="admin/templates" element={<Templates />} />
-                {/* </Route> */}
+                </Route>
 
                 {/* Catch-all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
