@@ -158,7 +158,7 @@ function PagesContent() {
                 {/* Admin Routes */}
                 {/* <Route element={<AdminRoute><Outlet /></AdminRoute>}> */}
                   <Route path="admin" element={<AdminDashboard />} />
-                  <Route path="templates" element={<Templates />} />
+                  <Route path="admin/templates" element={<Templates />} />
                 {/* </Route> */}
 
                 {/* Catch-all route */}

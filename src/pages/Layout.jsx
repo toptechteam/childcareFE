@@ -51,7 +51,7 @@ export default function Layout({ children, currentPageName }) {
     },
     {
       title: "Request Template",
-      url: createPageUrl("templates"),
+      url: createPageUrl("admin/templates"),
       icon: FileText, // Make sure to import FileText from lucide-react
     },
   ];
