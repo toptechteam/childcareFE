@@ -43,7 +43,7 @@ export default function Request() {
 
   const { data: requests = [] } = useQuery({
     queryKey: ['requests'],
-    queryFn: () => TestimonialRequest.find({ sort: '-created_date' }),
+    queryFn: () => TestimonialRequest.find({ sort: '-created_date', is_all: true }),
   });
 
   const sendRequestMutation = useMutation({
