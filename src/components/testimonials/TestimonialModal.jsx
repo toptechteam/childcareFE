@@ -39,16 +39,20 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
             <div>
               <div className="flex items-center gap-2">
                 <span>{testimonial.parent_name}</span>
-                {/* <Badge className={statusColors[testimonial.status]}>
-                  {testimonial.status}
-                </Badge> */}
 
-                {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
+
+                {/* {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
                   {testimonial.status}
-                </Badge>}
-                {testimonial.status == 'approved' && testimonial.is_publish && <Badge className={statusColors['published']}>
+                </Badge>} */}
+                {testimonial.status == 'approved' && testimonial.is_publish ? <Badge className={statusColors['published']}>
                   Published
-                </Badge>}
+                </Badge>
+                  :
+                  <Badge className={statusColors[testimonial.status]}>
+                    {testimonial.status}
+                  </Badge>
+
+                }
               </div>
               <p className="text-sm font-normal text-gray-500">
                 {testimonial.child_name}'s {testimonial.relationship}
@@ -105,7 +109,7 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
                 </Button>
               )}
 
-              {testimonial.status === 'new' && (
+              {testimonial.status == 'new' && (
                 <>
                   <Button
                     size="sm"

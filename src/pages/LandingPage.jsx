@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Video, 
-  Mic, 
-  FileText, 
-  Shield, 
-  Zap, 
+import {
+  Video,
+  Mic,
+  FileText,
+  Shield,
+  Zap,
   Heart,
   CheckCircle2,
   Star,
@@ -53,26 +53,7 @@ export default function LandingPage() {
     }
   ];
 
-  const sampleTestimonials = [
-    {
-      parent: "Sarah M.",
-      child: "Emma",
-      text: "The staff genuinely care about every child. Emma runs to the door every morning!",
-      rating: 5
-    },
-    {
-      parent: "James T.",
-      child: "Oliver",
-      text: "Best decision we made! The communication and daily updates give us such peace of mind.",
-      rating: 5
-    },
-    {
-      parent: "Lisa K.",
-      child: "Sophie",
-      text: "Sophie has grown so much here. The educators are incredible and the facilities are amazing.",
-      rating: 5
-    }
-  ];
+
 
   const plans = [
     {
@@ -125,6 +106,84 @@ export default function LandingPage() {
     { value: "98%", label: "Parent Response Rate" }
   ];
 
+
+  const [testimonials, setTestimonials] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        console.log('Fetching testimonials...');
+        const response = await fetch('https://childcarestories.com.au/soptima/api/testimonials-public/');
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', response.status, errorText);
+          throw new Error(`Failed to fetch testimonials: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('API Response:', data);
+
+        if (!Array.isArray(data)) {
+          console.error('Expected array but got:', typeof data, data);
+          throw new Error('Invalid data format from API');
+        }
+
+        const formattedTestimonials = data
+          .filter(item => {
+            const isApproved = item.status === 'approved' || item.status === 'published';
+            console.log('Testimonial:', item.id, 'Status:', item.status, 'Approved:', isApproved);
+            return isApproved;
+          })
+          .slice(0, 3)
+          .map(item => {
+            console.log('Processing testimonial:', item.id, 'Type:', item.testimonial_type);
+            return {
+              parent_name: item.parent_name || 'Parent',
+              child_name: item.child_name || 'Child',
+              content: item.content,
+              rating: item.rating || 5,
+              created_date: item.created_date,
+              testimonial_type: item.testimonial_type || 'text',
+              file_url: item.file_url,
+              photo_url: item.photo_url
+            };
+          });
+
+        console.log('Formatted Testimonials:', formattedTestimonials);
+        setTestimonials(formattedTestimonials);
+        setError(null);
+      } catch (err) {
+        console.error('Error in fetchTestimonials:', err);
+        setError(err.message);
+        // Fallback to sample data
+        const fallbackData = [
+          {
+            parent_name: "Sarah M.",
+            child_name: "Emma",
+            content: "The staff genuinely care about every child. Emma runs to the door every morning!",
+            rating: 5,
+            testimonial_type: "text"
+          },
+          {
+            parent_name: "James T.",
+            child_name: "Oliver",
+            content: "Best decision we made! The communication and daily updates give us such peace of mind.",
+            rating: 5,
+            testimonial_type: "text"
+          }
+        ];
+        console.log('Using fallback data');
+        setTestimonials(fallbackData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTestimonials();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <style>{`
@@ -143,9 +202,9 @@ export default function LandingPage() {
       <nav className="border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <img 
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/e38ecc91c_2.png" 
-              alt="Childcare Stories" 
+            <img
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/e38ecc91c_2.png"
+              alt="Childcare Stories"
               className="h-12 w-auto"
             />
             <div className="flex items-center gap-4">
@@ -177,7 +236,7 @@ export default function LandingPage() {
                 Turn Happy Families into Powerful Social Proof
               </h1>
               <p className="body-text text-xl text-[#555555] mb-8 leading-relaxed">
-                Collect authentic video, audio, and written testimonials from parents. 
+                Collect authentic video, audio, and written testimonials from parents.
                 Build trust, attract new families, and showcase your childcare centre's amazing impact.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -273,41 +332,117 @@ export default function LandingPage() {
       </section>
 
       {/* Social Proof Section */}
-      <section className="py-20 md:py-32">
+      {/* Testimonials Section */}
+      {/* Testimonials Section */}
+      <section className="py-20" style={{ backgroundColor: '#F8FAFC' }}> {/* bg-slate-50 */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="logo-text text-4xl md:text-5xl font-bold text-[#000000] mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
               Real Stories from Real Families
             </h2>
-            <p className="body-text text-xl text-[#555555]">
+            <p className="text-xl text-slate-600">
               See how parents are sharing their experiences
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {sampleTestimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-white border-gray-100 hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-8">
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="body-text text-[#555555] mb-6 italic">
-                    "{testimonial.text}"
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#8AE0F2] to-[#7ACDE0] rounded-full flex items-center justify-center text-white font-bold">
-                      {testimonial.parent[0]}
+
+          {isLoading ? (
+            <div className="grid md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((_, index) => (
+                <div key={index} className="bg-white rounded-xl p-6 h-64 animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-8">
+              {error}
+            </div>
+          ) : (
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+              {testimonials.map((testimonial, index) => (
+                <div
+                  key={index}
+                  className="break-inside-avoid bg-white rounded-xl p-6 hover:shadow-xl transition-all duration-300 border border-slate-100"
+                >
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#8AE0F2] to-[#7ACDE0] rounded-full flex items-center justify-center text-white font-bold text-xl">
+                      {testimonial.parent_name?.[0] || 'P'}
                     </div>
                     <div>
-                      <p className="font-semibold text-[#000000]">{testimonial.parent}</p>
-                      <p className="text-sm text-[#555555]">{testimonial.child}'s Parent</p>
+                      <p className="font-semibold text-slate-900">
+                        {testimonial.parent_name || 'Parent'}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {testimonial.child_name ? `${testimonial.child_name}'s ${testimonial.relationship || 'Parent'}` : 'Parent'}
+                      </p>
+                       {/* Rating */}
+                  <div className="flex gap-1 mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-5 h-5 ${i < testimonial.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`}
+                      />
+                    ))}
+                  </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
+                 
+
+                  {/* Media Content */}
+                  {testimonial.testimonial_type === 'video' && testimonial.file_url && (
+                    <div className="mb-4 rounded-lg overflow-hidden">
+                      <video
+                        src={testimonial.file_url}
+                        controls
+                        className="w-full rounded-lg"
+                        
+                      />
+                    </div>
+                  )}
+
+                  {testimonial.testimonial_type === 'audio' && testimonial.file_url && (
+                    <div className="mb-4">
+                      <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
+                        <Mic className="w-5 h-5 text-[#8AE0F2]" />
+                        <audio
+                          src={testimonial.file_url}
+                          controls
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Text Content */}
+                  {testimonial.content && (
+                    <p className="text-slate-700 mb-4">
+                      "{testimonial.content}"
+                    </p>
+                  )}
+
+                  <div className="flex justify-between items-center mt-1">
+                    {/* Date */}
+                    {testimonial.created_date && (
+                      <p className="text-xs text-slate-400">
+                        {new Date(testimonial.created_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+
+                    {/* Media Type Badge */}
+                    {testimonial.testimonial_type && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#8AE0F2]/10 text-[#7ACDE0]">
+                        {testimonial.testimonial_type.charAt(0).toUpperCase() + testimonial.testimonial_type.slice(1)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -349,7 +484,7 @@ export default function LandingPage() {
                     ))}
                   </ul>
                   <a href="https://app.childcarestories.com.au/Setup">
-                    <Button 
+                    <Button
                       className={`w-full ${plan.popular ? 'bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white' : 'bg-white border-2 border-[#8AE0F2] text-[#000000] hover:bg-[#8AE0F2]/5'}`}
                       size="lg"
                     >
@@ -392,9 +527,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/e38ecc91c_2.png" 
-                alt="Childcare Stories" 
+              <img
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/e38ecc91c_2.png"
+                alt="Childcare Stories"
                 className="h-10 w-auto mb-4 brightness-0 invert"
               />
               <p className="body-text text-white/60 text-sm">

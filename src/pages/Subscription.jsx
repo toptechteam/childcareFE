@@ -69,7 +69,7 @@ function CheckoutForm({ clientSecret }) {
           title: 'Payment method saved',
           description: 'Your payment method has been saved successfully',
         });
-        if (data?.stripe?.status == 'active') {
+        if (data?.message == 'Subscription purchased and charged successfully via Stripe') {
           const resp = refresh().then(() => navigate('/dashboard')).catch((err) => {
             console.error('Error creating subscription intent:', err);
           })

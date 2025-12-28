@@ -29,12 +29,17 @@ export default function TestimonialCard({ testimonial, onStatusChange, onClick }
           <div className={`w-12 h-12 ${typeConfig.bg} rounded-xl flex items-center justify-center`}>
             <TypeIcon className={`w-6 h-6 ${typeConfig.color}`} />
           </div>
-          {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
+          {/* {testimonial.status == 'approved' && !testimonial.is_publish && <Badge className={statusColors[testimonial.status]}>
             {testimonial.status}
-          </Badge>}
-          {testimonial.status == 'approved' && testimonial.is_publish && <Badge className={statusColors['published']}>
+          </Badge>} */}
+          {(testimonial.status == 'approved' && testimonial.is_publish) ? <Badge className={statusColors['published']}>
             Published
-          </Badge>}
+          </Badge>
+            :
+            <Badge className={statusColors[testimonial.status]}>
+              {testimonial.status}
+            </Badge>
+          }
         </div>
 
         <h3 className="font-bold text-lg text-[#000000] mb-1">{testimonial.parent_name}</h3>
@@ -77,6 +82,7 @@ export default function TestimonialCard({ testimonial, onStatusChange, onClick }
               variant="outline"
               onClick={(e) => {
                 e.stopPropagation();
+                onClick()
               }}
               className="border-[#8AE0F2] text-[#8AE0F2] hover:bg-[#8AE0F2]/10"
             >

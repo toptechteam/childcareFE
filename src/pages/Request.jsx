@@ -13,6 +13,7 @@ import { format } from "date-fns";
 
 import { Center, Template, TestimonialRequest } from "@/api/entities";
 import RequestHistory from "../components/request/RequestHistory";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Request() {
   const queryClient = useQueryClient();
@@ -58,9 +59,25 @@ export default function Request() {
         center_id: center?.id,
         message: customMessage || selectedTemplate?.default_message || ''
       };
-
-      const createdRequest = await TestimonialRequest.create(requestData);
-      debugger
+      try {
+        const resp = await TestimonialRequest.create(requestData);
+        debugger
+        await queryClient.invalidateQueries({ queryKey: ['requests'] });
+        toast({
+          title: 'Success',
+          description: 'Request sent successfully',
+          variant: 'default',
+        });
+        return resp
+      }
+      catch (error) {
+        debugger
+        toast({
+          title: 'Error',
+          description: 'Failed to send email',
+          variant: 'destructive',
+        });
+      }
       if (selectedTemplate) {
         let emailBody = customMessage || selectedTemplate.email_body || '';
         emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name || '');
@@ -83,6 +100,11 @@ export default function Request() {
             }),
           });
         } catch (error) {
+          toast({
+            title: 'Error',
+            description: error.message || 'Failed to send email',
+            variant: 'destructive',
+          });
           console.error('Failed to send email:', error);
           // Continue even if email fails
         }
