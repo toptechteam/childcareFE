@@ -116,7 +116,7 @@ export default function RecordingInterface({ type, request, center, onSubmit, on
         testimonial_type: type,
         file_url: file_url,
         photo_url: uploadedPhotoUrl,
-        rating: 5,
+        rating: null,
       });
     } catch (error) {
       console.error('Upload failed:', error);
