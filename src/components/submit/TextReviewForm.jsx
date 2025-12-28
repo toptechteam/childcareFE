@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Send, ArrowLeft, Upload } from "lucide-react";
 
-export default function TextReviewForm({ request, onSubmit, onBack, isSubmitting }) {
+export default function TextReviewForm({  type, request, center, onSubmit, onBack, isSubmitting}) {
   const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://components-trainer-essentially-indirect.trycloudflare.com/soptima/api';
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");

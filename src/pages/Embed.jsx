@@ -8,26 +8,140 @@ import { Code, Copy, Check, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import EmbedPreview from "../components/embed/EmbedPreview";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Embed() {
   const [copied, setCopied] = useState(false);
 
   // Renamed 'center' to 'centre' for Australian spelling
+  const { user } = useAuth();
   const { data: centre } = useQuery({
     queryKey: ['centre'],
     queryFn: async () => {
-      const centres = await Center.find();
-      return centres[0] || null;
+      return await Center.findById(user?.center_id);
     },
   });
 
-  const { data: testimonials = [] } = useQuery({
-    queryKey: ['testimonials'],
-    queryFn: () => TestimonialRequest.find({ status: 'approved', sort: '-created_date' }),
-  });
+  
 
-  const embedCode = `<!-- ChildcareStories Testimonial Widget -->
-  <style>
+  const embedCode = `<!-- ChildcareStories Testimonial Widget --> 
+  <div id="childcare-testimonials" class="testimonials-container"></div>
+  
+  <script>
+    (function() {
+      // Function to get initials from name
+      function getInitials(name) {
+        if (!name) return 'P';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+      }
+  
+      // Function to format date
+      function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      }
+  
+      // Function to render media
+      function renderMedia(testimonial) {
+        if (!testimonial.testimonial_type) return '';
+        
+        const mediaUrl = testimonial.file_url || testimonial.photo_url;
+        if (!mediaUrl) return '';
+        
+        switch(testimonial.testimonial_type.toLowerCase()) {
+          case 'video':
+            return \`
+              <div class="testimonial-media">
+                <video 
+                  src="\${mediaUrl}" 
+                  controls 
+                  playsinline
+                  style="background: #000;"
+                ></video>
+              </div>
+            \`;
+          case 'audio':
+            return \`
+              <div class="testimonial-media">
+                <audio 
+                  src="\${mediaUrl}" 
+                  controls 
+                  style="width: 100%;"
+                ></audio>
+              </div>
+            \`;
+          default:
+            return '';
+        }
+      }
+  
+      // Fetch and render testimonials
+      fetch(https://childcarestories.com.au/soptima/api/testimonials/${centre?.id}/')
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(testimonials => {
+          const container = document.getElementById('childcare-testimonials');
+          
+          if (!testimonials || !testimonials.length) {
+            container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;">No testimonials available yet.</div>';
+            return;
+          }
+  
+          container.innerHTML = testimonials.map(t => \`
+            <div class="testimonial-card">
+              <div class="testimonial-header">
+                <div class="testimonial-avatar">
+                  \${getInitials(t.parent_name)}
+                </div>
+                <div class="testimonial-info">
+                  <h3 class="testimonial-name">\${t.parent_name || 'Parent'}</h3>
+                  \${t.child_name ? \`
+                    <p class="testimonial-relation">\${t.child_name}'s</p>
+                  \` : ''}
+                </div>
+              </div>
+              
+              \${t.content ? \`
+                <div class="testimonial-content">\${t.content}</div>
+              \` : ''}
+              
+              \${renderMedia(t)}
+              
+              \${t.rating ? \`
+                <div class="testimonial-rating">
+                  \${'★'.repeat(Math.min(5, Math.max(0, t.rating)))}
+                  \${'☆'.repeat(5 - Math.min(5, Math.max(0, t.rating)))}
+                </div>
+              \` : ''}
+              
+              <div class="testimonial-date">
+                \${formatDate(t.created_date)}
+                \${t.testimonial_type ? \`
+                  <span class="testimonial-tag">\${t.testimonial_type}</span>
+                \` : ''}
+              </div>
+            </div>
+          \`).join('');
+        })
+        .catch(error => {
+          console.error('Error loading testimonials:', error);
+          const container = document.getElementById('childcare-testimonials');
+          container.innerHTML = \`
+            <div style="grid-column: 1 / -1; text-align: center; color: #ff6b6b; padding: 40px;">
+              Failed to load testimonials. Please check your connection and try again.
+            </div>
+          \`;
+        });
+    })();
+  </script>
+   <style>
     .testimonials-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -145,123 +259,6 @@ export default function Embed() {
       }
     }
   </style>
-  
-  <div id="childcare-testimonials" class="testimonials-container"></div>
-  
-  <script>
-    (function() {
-      // Function to get initials from name
-      function getInitials(name) {
-        if (!name) return 'P';
-        return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-      }
-  
-      // Function to format date
-      function formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
-      }
-  
-      // Function to render media
-      function renderMedia(testimonial) {
-        if (!testimonial.testimonial_type) return '';
-        
-        const mediaUrl = testimonial.file_url || testimonial.photo_url;
-        if (!mediaUrl) return '';
-        
-        switch(testimonial.testimonial_type.toLowerCase()) {
-          case 'video':
-            return \`
-              <div class="testimonial-media">
-                <video 
-                  src="\${mediaUrl}" 
-                  controls 
-                  playsinline
-                  style="background: #000;"
-                ></video>
-              </div>
-            \`;
-          case 'audio':
-            return \`
-              <div class="testimonial-media">
-                <audio 
-                  src="\${mediaUrl}" 
-                  controls 
-                  style="width: 100%;"
-                ></audio>
-              </div>
-            \`;
-          default:
-            return '';
-        }
-      }
-  
-      // Fetch and render testimonials
-      fetch('https://childcarestories.com.au/soptima/api/testimonials/6/')
-        .then(response => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          return response.json();
-        })
-        .then(testimonials => {
-          const container = document.getElementById('childcare-testimonials');
-          
-          if (!testimonials || !testimonials.length) {
-            container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;">No testimonials available yet.</div>';
-            return;
-          }
-  
-          container.innerHTML = testimonials.map(t => \`
-            <div class="testimonial-card">
-              <div class="testimonial-header">
-                <div class="testimonial-avatar">
-                  \${getInitials(t.parent_name)}
-                </div>
-                <div class="testimonial-info">
-                  <h3 class="testimonial-name">\${t.parent_name || 'Parent'}</h3>
-                  \${t.child_name ? \`
-                    <p class="testimonial-relation">\${t.child_name}'s</p>
-                  \` : ''}
-                </div>
-              </div>
-              
-              \${t.content ? \`
-                <div class="testimonial-content">\${t.content}</div>
-              \` : ''}
-              
-              \${renderMedia(t)}
-              
-              \${t.rating ? \`
-                <div class="testimonial-rating">
-                  \${'★'.repeat(Math.min(5, Math.max(0, t.rating)))}
-                  \${'☆'.repeat(5 - Math.min(5, Math.max(0, t.rating)))}
-                </div>
-              \` : ''}
-              
-              <div class="testimonial-date">
-                \${formatDate(t.created_date)}
-                \${t.testimonial_type ? \`
-                  <span class="testimonial-tag">\${t.testimonial_type}</span>
-                \` : ''}
-              </div>
-            </div>
-          \`).join('');
-        })
-        .catch(error => {
-          console.error('Error loading testimonials:', error);
-          const container = document.getElementById('childcare-testimonials');
-          container.innerHTML = \`
-            <div style="grid-column: 1 / -1; text-align: center; color: #ff6b6b; padding: 40px;">
-              Failed to load testimonials. Please check your connection and try again.
-            </div>
-          \`;
-        });
-    })();
-  </script>
   <!-- Powered by ChildcareStories.com.au -->`;
 
 
@@ -312,7 +309,7 @@ export default function Embed() {
                   )}
                   {copied ? "Copied!" : "Copy Code"}
                 </Button>
-                <pre className="text-sm text-green-400 overflow-x-auto">
+                <pre className="text-sm text-green-400 h-[30rem] overflow-auto">
                   <code>{embedCode}</code>
                 </pre>
               </div>
@@ -330,7 +327,7 @@ export default function Embed() {
               <div className="bg-orange-50 rounded-xl p-6 border border-orange-100">
                 <h3 className="font-semibold text-orange-900 mb-2">Note:</h3>
                 <p className="text-orange-800">
-                  Currently showing {testimonials.length} approved testimonials.
+                  Currently showing {centre?.testimonials.length} approved testimonials.
                   Make sure to approve testimonials in the Testimonials section before they appear on your website.
                 </p>
               </div>
@@ -346,7 +343,7 @@ export default function Embed() {
 
         <TabsContent value="preview">
           {/* Passed 'centre' variable to EmbedPreview */}
-          <EmbedPreview testimonials={testimonials.slice(0, 6)} centre={centre} />
+          <EmbedPreview testimonials={centre?.testimonials.slice(0, 6)} centre={centre} />
         </TabsContent>
       </Tabs>
     </div>

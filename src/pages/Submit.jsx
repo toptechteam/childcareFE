@@ -172,7 +172,9 @@ export default function Submit() {
           />
 
           <TextReviewForm
-            request={request}
+            type={selectedType}
+            request={request?.testimonial}
+            center={request?.center}
             onSubmit={(data) => submitTestimonialMutation.mutate(data)}
             onBack={() => setSelectedType(null)}
             isSubmitting={submitTestimonialMutation.isPending}

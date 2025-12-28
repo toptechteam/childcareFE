@@ -106,11 +106,11 @@ export default function EmbedPreview({ testimonials, centre }) {
 
 
                   <div className="flex justify-between items-center mt-4">
-                    {testimonial.testimonial_type === 'text' && testimonial.content && (
+                    {/* {testimonial.testimonial_type === 'text' && testimonial.content && (
                       <p className="text-[#555555] mt-4 line-clamp-4">
                         {testimonial.content}
                       </p>
-                    )}
+                    )} */}
 
                     {testimonial.created_date && (
                       <p className="text-xs text-gray-400 mt-3">
