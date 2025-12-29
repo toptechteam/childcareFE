@@ -12,6 +12,7 @@ export default function TextReviewForm({  type, request, center, onSubmit, onBac
   const [content, setContent] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
+  const [photoViewUrl, setPhotoViewUrl] = useState(null);
 debugger
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -31,8 +32,9 @@ debugger
         throw new Error('Upload failed');
       }
       
-      const { file_url } = await response.json();
+      const { file_url, signed_url } = await response.json();
       setPhotoUrl(file_url);
+      setPhotoViewUrl(signed_url);
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -108,8 +110,8 @@ debugger
           <div>
             <Label className="text-lg mb-3 block">Add a photo (optional)</Label>
             <div className="flex items-center gap-4">
-              {photoUrl && (
-                <img src={photoUrl} alt="Uploaded" className="w-32 h-32 rounded-xl object-cover" />
+              {photoViewUrl && (
+                <img src={photoViewUrl} alt="Uploaded" className="w-32 h-32 rounded-xl object-cover" />
               )}
               <input
                 type="file"
