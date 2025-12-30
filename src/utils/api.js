@@ -48,6 +48,26 @@ export const authAPI = {
     }
   },
 
+  forgotPassword: async (email, password) => {
+    try {
+      const response = await api.post('/auth/forgot-password/', {
+        email,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  resetPassword: async (modal) => {
+    try {
+      const response = await api.post('/auth/reset-password/', modal);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
   refresh: async () => {
     try {
       const response = await api.get('/auth/token/refresh');
@@ -164,7 +184,7 @@ export const usersAPI = {
     }
   },
 
-   deletePackage: async (id) => {
+  deletePackage: async (id) => {
     try {
       const response = await api.delete(`/packages/${id}/`);
       return response.data;

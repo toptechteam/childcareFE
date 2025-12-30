@@ -16,6 +16,8 @@ import { BrowserRouter as Router, Route, Routes, useLocation, Navigate, Outlet }
 import { useAuth } from '@/contexts/AuthContext';
 import SubscriptionCheck from '@/components/SubscriptionCheck';
 import Subscription from "./Subscription.jsx";
+import ResetPassword from "./ResetPassword.jsx";
+import ForgotPassword from "./ForgotPassword.jsx";
 
 const PAGES = {
   Dashboard,
@@ -133,6 +135,26 @@ function PagesContent() {
             <Navigate to={getRedirectPath()} replace />
           ) : (
             <Login />
+          )
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={getRedirectPath()} replace />
+          ) : (
+            <ForgotPassword />
+          )
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          isAuthenticated ? (
+            <Navigate to={getRedirectPath()} replace />
+          ) : (
+            <ResetPassword />
           )
         }
       />
