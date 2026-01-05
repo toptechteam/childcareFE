@@ -48,7 +48,7 @@ export const authAPI = {
     }
   },
 
-  forgotPassword: async (email, password) => {
+  forgotPassword: async (email) => {
     try {
       const response = await api.post('/auth/forgot-password/', {
         email,
