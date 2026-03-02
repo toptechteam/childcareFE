@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addDays, format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "../ui/use-toast";
 
 export default function AddClientModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -53,13 +54,22 @@ export default function AddClientModal({ onClose, onSuccess }) {
       };
 
       return usersAPI.createCenter(centerData);
+
+
     },
     onSuccess: () => {
       console.log("✅ Center created successfully");
+      toast({
+        title: 'Creation successful',
+        description: 'Center created successfully!',
+      });
       onSuccess();
     },
     onError: (error) => {
-      debugger
+      toast({
+        title: 'Error',
+        description: 'Failed to create center!',
+      });
       console.error("❌ Error creating center:", error);
     },
   });

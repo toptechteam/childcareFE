@@ -11,6 +11,7 @@ import { Upload, Check, Building2, Palette, Globe } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Center } from "@/api/entities";
 import { UploadFile } from "@/api/integrations";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -72,7 +73,17 @@ export default function Setup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['center'] });
+      toast({
+        title: center?.id ? ' Update successful' : 'Creation successful',
+        description: center?.id ? 'Center updated successfully' : 'Center created successfully!',
+      });
       navigate(createPageUrl("Dashboard"));
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create center!',
+      });
     },
   });
 
@@ -84,16 +95,16 @@ export default function Setup() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
-      const response = await fetch( import.meta.env.VITE_API_BASE_URL +'/integrations/upload-file/', {
+
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/integrations/upload-file/', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) throw new Error('Upload failed');
-      
-      const { fileUrl } = await response.json();
-      setFormData(prev => ({ ...prev, logo_url: fileUrl }));
+      const { signed_url } = await response.json();
+      debugger
+      setFormData(prev => ({ ...prev, logo_url: signed_url }));
     } catch (error) {
       console.error('Error uploading file:', error);
       // Handle error (e.g., show error message to user)
@@ -125,9 +136,9 @@ export default function Setup() {
       `}</style>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/1c51a949d_1.png" 
-            alt="Childcare Stories" 
+          <img
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/1c51a949d_1.png"
+            alt="Childcare Stories"
             className="h-32 mx-auto mb-6"
           />
           <h1 className="logo-text text-3xl md:text-4xl text-[#000000] mb-2">
@@ -140,11 +151,10 @@ export default function Setup() {
           <div className="flex items-center gap-2">
             {steps.map((s, idx) => (
               <React.Fragment key={s.number}>
-                <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
-                  step >= s.number 
-                    ? 'bg-[#8AE0F2] text-white shadow-lg' 
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step >= s.number
+                    ? 'bg-[#8AE0F2] text-white shadow-lg'
                     : 'bg-white text-gray-400 border border-gray-200'
-                }`}>
+                  }`}>
                   {step > s.number ? (
                     <Check className="w-4 h-4" />
                   ) : (
@@ -177,7 +187,7 @@ export default function Setup() {
                     <Input
                       id="center_name"
                       value={formData.center_name}
-                      onChange={(e) => setFormData({...formData, center_name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, center_name: e.target.value })}
                       placeholder="Little Sunshine Daycare"
                       required
                       className="mt-2"
@@ -188,7 +198,7 @@ export default function Setup() {
                     <Input
                       id="address"
                       value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       placeholder="123 Main Street, City, State"
                       className="mt-2"
                     />
@@ -235,12 +245,12 @@ export default function Setup() {
                           type="color"
                           id="primary_color"
                           value={formData.primary_color}
-                          onChange={(e) => setFormData({...formData, primary_color: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
                           className="w-16 h-10 rounded-lg cursor-pointer"
                         />
                         <Input
                           value={formData.primary_color}
-                          onChange={(e) => setFormData({...formData, primary_color: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
                           className="flex-1"
                         />
                       </div>
@@ -252,12 +262,12 @@ export default function Setup() {
                           type="color"
                           id="secondary_color"
                           value={formData.secondary_color}
-                          onChange={(e) => setFormData({...formData, secondary_color: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
                           className="w-16 h-10 rounded-lg cursor-pointer"
                         />
                         <Input
                           value={formData.secondary_color}
-                          onChange={(e) => setFormData({...formData, secondary_color: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
                           className="flex-1"
                         />
                       </div>
@@ -274,7 +284,7 @@ export default function Setup() {
                       id="contact_email"
                       type="email"
                       value={formData.contact_email}
-                      onChange={(e) => setFormData({...formData, contact_email: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                       placeholder="hello@littlesunshine.com"
                       className="mt-2"
                     />
@@ -285,7 +295,7 @@ export default function Setup() {
                       id="contact_phone"
                       type="tel"
                       value={formData.contact_phone}
-                      onChange={(e) => setFormData({...formData, contact_phone: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                       placeholder="(555) 123-4567"
                       className="mt-2"
                     />
@@ -296,7 +306,7 @@ export default function Setup() {
                       id="website_url"
                       type="url"
                       value={formData.website_url}
-                      onChange={(e) => setFormData({...formData, website_url: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
                       placeholder="https://littlesunshine.com"
                       className="mt-2"
                     />

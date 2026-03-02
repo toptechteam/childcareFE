@@ -123,6 +123,16 @@ export default function Request() {
         template_id: "",
       });
       setCustomMessage("");
+      toast({
+        title: 'Success',
+        description: 'Request sent successfully!',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to sent request!',
+      });
     },
   });
 
