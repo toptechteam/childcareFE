@@ -10,13 +10,15 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Center } from "@/api/entities";
 import { createCheckout, createCustomerPortal } from "@/api/functions";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Settings() {
+   const { user } = useAuth();
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await Center.find();
-      return centers[0];
+      const centers = await Center.findById(user?.center_id);
+      return centers;
     },
   });
 
@@ -195,7 +197,7 @@ export default function Settings() {
               <Button variant="outline">Add Payment Method</Button>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-200">
+            {/* <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="font-semibold mb-3">Additional Locations</h3>
               <p className="text-sm text-gray-600 mb-2">
                 Need to manage multiple locations? Add more for just $11/month each.
@@ -203,7 +205,7 @@ export default function Settings() {
               <Button variant="outline" size="sm">
                 Add Location
               </Button>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>

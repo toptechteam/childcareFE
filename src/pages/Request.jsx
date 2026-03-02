@@ -61,7 +61,6 @@ export default function Request() {
       };
       try {
         const resp = await TestimonialRequest.create(requestData);
-        debugger
         await queryClient.invalidateQueries({ queryKey: ['requests'] });
         toast({
           title: 'Success',
@@ -71,7 +70,6 @@ export default function Request() {
         return resp
       }
       catch (error) {
-        debugger
         toast({
           title: 'Error',
           description: 'Failed to send email',
@@ -242,7 +240,6 @@ export default function Request() {
                   value={formData.template_id}
 
                   onValueChange={(value) => {
-                    debugger
                     setFormData((prev) => ({ ...prev, template_id: value.toString() }))
                     const template = templates.find(t => t.id.toString() === value.toString());
                     setSelectedTemplate(template);

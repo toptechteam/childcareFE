@@ -12,6 +12,7 @@ import { format, addDays } from "date-fns";
 import { Center } from "@/api/entities";
 import { UploadFile } from "@/api/integrations";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -30,11 +31,12 @@ export default function Setup() {
     address: "",
   });
 
+  const { user } = useAuth();
   const { data: center } = useQuery({
     queryKey: ['center'],
     queryFn: async () => {
-      const centers = await Center.find();
-      return centers[0];
+      const centers = await Center.findById(user?.center_id);
+      return centers;
     },
   });
 
@@ -152,8 +154,8 @@ export default function Setup() {
             {steps.map((s, idx) => (
               <React.Fragment key={s.number}>
                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step >= s.number
-                    ? 'bg-[#8AE0F2] text-white shadow-lg'
-                    : 'bg-white text-gray-400 border border-gray-200'
+                  ? 'bg-[#8AE0F2] text-white shadow-lg'
+                  : 'bg-white text-gray-400 border border-gray-200'
                   }`}>
                   {step > s.number ? (
                     <Check className="w-4 h-4" />
@@ -324,7 +326,7 @@ export default function Setup() {
                     Back
                   </Button>
                 )}
-                {step < 3 ? (
+                {(step > 0 && step <= 3) ? (
                   <Button
                     type="button"
                     onClick={() => setStep(step + 1)}
@@ -333,15 +335,17 @@ export default function Setup() {
                   >
                     Next
                   </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={createOrUpdateMutation.isPending}
-                    className="ml-auto bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
-                  >
-                    {createOrUpdateMutation.isPending ? "Saving..." : "Complete Setup"}
-                  </Button>
-                )}
+                )
+                  : (
+                    <Button
+                      type="submit"
+                      disabled={createOrUpdateMutation.isPending}
+                      className="ml-auto bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
+                    >
+                      {createOrUpdateMutation.isPending ? "Saving..." : "Complete Setup"}
+                    </Button>
+                  )
+                }
               </div>
             </form>
           </CardContent>
