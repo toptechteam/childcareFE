@@ -86,21 +86,13 @@ export default function ResetPassword() {
       // TODO: Replace with your actual API call
       debugger
       let modal = { token, password }
-      const response = await authAPI.resetPassword(modal)
-      const data = await response.json();
-      if (!response.ok) {
-        toast({
-          title: 'Error',
-          description: data.message || 'Failed to reset password',
-        });
-      }
-      else {
-        toast({
-          title: 'Success',
-          description: 'Your password has been reset successfully!',
-        });
-        navigate('/login');
-      }
+      await authAPI.resetPassword(modal);
+
+      toast({
+        title: 'Success',
+        description: 'Your password has been reset successfully!',
+      });
+      navigate('/login');
 
     } catch (error) {
       toast({

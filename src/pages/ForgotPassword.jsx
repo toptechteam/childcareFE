@@ -30,10 +30,7 @@ export default function ForgotPassword() {
 
     try {
       // TODO: Replace with your actual API call
-      const response = await authAPI.forgotPassword(email);
-      debugger
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to send reset email');
+      await authAPI.forgotPassword(email);
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));

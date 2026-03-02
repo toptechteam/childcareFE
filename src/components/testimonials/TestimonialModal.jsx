@@ -25,7 +25,7 @@ const statusColors = {
 export default function TestimonialModal({ testimonial, onClose, onStatusChange }) {
   if (!testimonial) return null;
 
-  const typeConfig = typeIcons['video'];
+  const typeConfig = typeIcons[testimonial.testimonial_type || 'text'];
   const TypeIcon = typeConfig.icon;
 
   return (
@@ -88,7 +88,7 @@ export default function TestimonialModal({ testimonial, onClose, onStatusChange 
             </div>
           )}
 
-          {testimonial.photo_url && (
+          {testimonial.photo_url && testimonial.testimonial_type !== 'text' && (
             <div className="rounded-xl overflow-hidden">
               <img src={testimonial.file_url} alt="Testimonial" className="w-full h-auto" />
             </div>
