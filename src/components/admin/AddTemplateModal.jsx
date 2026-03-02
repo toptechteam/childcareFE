@@ -159,6 +159,9 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
                 className="font-mono text-sm"
                 required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Use these placeholders; they will be replaced with actual data: <br /><span className="font-mono bg-muted px-1 rounded text-[#0BC5EA]">[Parent Name]</span> <span className="font-mono bg-muted px-1 rounded text-[#0BC5EA]">[Child Name]</span> <span className="font-mono bg-muted px-1 rounded text-[#0BC5EA]">[Center Name]</span>
+              </p>
             </div>
 
             {/* Active Status */}
@@ -188,12 +191,12 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
               {templateMutation.isLoading
                 ? "Saving..."
                 : isEditMode
-                ? "Update Template"
-                : "Create Template"}
+                  ? "Update Template"
+                  : "Create Template"}
             </Button>
           </div>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }
