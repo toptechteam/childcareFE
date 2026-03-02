@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Center, Template, TestimonialRequest } from "@/api/entities";
 import RequestHistory from "../components/request/RequestHistory";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Request() {
   const queryClient = useQueryClient();
@@ -28,13 +29,14 @@ export default function Request() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [customMessage, setCustomMessage] = useState("");
 
-  const { data: center } = useQuery({
-    queryKey: ['center'],
-    queryFn: async () => {
-      const centers = await Center.find();
-      return centers[0];
-    },
-  });
+  const { user } = useAuth();
+    const { data: center } = useQuery({
+      queryKey: ['center'],
+      queryFn: async () => {
+        const centers = await Center.findById(user?.center_id);
+        return centers;
+      },
+    });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
@@ -97,6 +99,7 @@ export default function Request() {
           variant: 'destructive',
         });
       }
+      debugger
       if (selectedTemplate) {
         let emailBody = customMessage || selectedTemplate.email_body || '';
         emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name || '');
@@ -299,7 +302,7 @@ export default function Request() {
                 </div>
               )}
 
-              <div>
+              {/* <div>
                 <Label htmlFor="custom_message">Customise Message (Optional)</Label>
                 <Textarea
                   id="custom_message"
@@ -310,7 +313,7 @@ export default function Request() {
                   placeholder="Add a personal note..."
                   className="mt-2 h-24"
                 />
-              </div>
+              </div> */}
 
               <Button
                 type="submit"
