@@ -1,13 +1,13 @@
-
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Template } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, FileTextIcon, Heart, Home, ThumbsUp } from "lucide-react";
+import { FileText, FileTextIcon, Heart, Home, ThumbsUp, Edit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AddTemplateModal from "@/components/admin/AddTemplateModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const scenarioIcons = {
   general: Heart,
@@ -25,13 +25,43 @@ const scenarioColors = {
 
 export default function Templates() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: templates = [] } = useQuery({
     queryKey: ['templates'],
     queryFn: () => Template.find(),
   });
 
   const [showAddTemplateModal, setshowAddTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => Template.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      toast({
+        title: "Template deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting template",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (template) => {
+    setEditingTemplate(template);
+    setshowAddTemplateModal(true);
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm("Are you sure you want to delete this template?")) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -43,7 +73,10 @@ export default function Templates() {
           <p className="text-[#555555]">Manage and review parent testimonials</p>
         </div>
         {user?.role === 'admin' && user?.is_superuser && <Button
-          onClick={() => { setshowAddTemplateModal(true) }}
+          onClick={() => {
+            setEditingTemplate(null);
+            setshowAddTemplateModal(true);
+          }}
           className="whitespace-nowrap"
         >
           <FileText className="mr-2 h-4 w-4" />
@@ -53,10 +86,10 @@ export default function Templates() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {templates.map((template) => {
           const Icon = scenarioIcons[template.scenario] || FileText;
-          const colorClass = scenarioColors[template.scenario] || "text-[#555555] bg-gray-50";
+          const colorClass = scenarioColors[template.scenario] || "text-[#555555] bg-gray-0";
 
           return (
-            <Card key={template.id} className="bg-white/80 backdrop-blur-sm border-white/60 shadow-sm hover:shadow-lg transition-all duration-200">
+            <Card key={template.id} className="bg-white/80 backdrop-blur-sm border-white/60 shadow-sm hover:shadow-lg transition-all duration-200 relative group">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="flex items-center gap-3">
@@ -70,6 +103,26 @@ export default function Templates() {
                       </Badge>
                     </div>
                   </CardTitle>
+                  {user?.role === 'admin' && user?.is_superuser && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(template)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Edit2 className="h-4 w-4 text-[#555555]" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(template.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -95,13 +148,18 @@ export default function Templates() {
 
       {showAddTemplateModal && (
         <AddTemplateModal
-          onClose={() => setshowAddTemplateModal(false)}
-          onSuccess={() => {
-            // queryClient.invalidateQueries({ queryKey: ['templates'] });
+          template={editingTemplate}
+          onClose={() => {
             setshowAddTemplateModal(false);
+            setEditingTemplate(null);
+          }}
+          onSuccess={() => {
+            setshowAddTemplateModal(false);
+            setEditingTemplate(null);
           }}
         />
       )}
     </div>
   );
 }
+

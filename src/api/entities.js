@@ -70,7 +70,7 @@ export const Template = {
   },
   update: async (id, data) => {
     try {
-      const response = await api.patch(`/templates/${id}`, data);
+      const response = await api.patch(`/templates/${id}/`, data);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -78,7 +78,7 @@ export const Template = {
   },
   delete: async (id) => {
     try {
-      const response = await api.delete(`/templates/${id}`);
+      const response = await api.delete(`/templates/${id}/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
