@@ -2,10 +2,10 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Mail } from "lucide-react";
+import { CheckCircle, Clock, Mail, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 
-export default function RequestHistory({ requests }) {
+export default function RequestHistory({ requests, onReuse }) {
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-xl">
       <CardHeader>
@@ -26,17 +26,27 @@ export default function RequestHistory({ requests }) {
                     <p className="font-semibold text-[#000000]">{request.parent_name}</p>
                     <p className="text-sm text-[#555555]">{request.child_name}'s {request.relationship}</p>
                   </div>
-                  {request.completed ? (
-                    <Badge className="bg-[#8AE0F2]/20 text-[#000000]">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Completed
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-orange-100 text-orange-800">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Pending
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {request.completed ? (
+                      <Badge className="bg-[#8AE0F2]/20 text-[#000000]">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Completed
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-orange-100 text-orange-800">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Pending
+                      </Badge>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onReuse?.(request)}
+                      title="Reuse this request"
+                      className="p-1.5 rounded-lg text-[#555555] hover:text-[#000000] hover:bg-[#8AE0F2]/20 transition-colors duration-200"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-[#555555]">
                   Sent {format(new Date(request.sent_date), 'MMM d, yyyy')}

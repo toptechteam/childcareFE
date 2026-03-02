@@ -46,6 +46,27 @@ export default function Request() {
     queryFn: () => TestimonialRequest.find({ sort: '-created_date', is_all: true }),
   });
 
+  const handleReuseRequest = (request) => {
+    setFormData({
+      parent_name: request.parent_name || "",
+      parent_email: request.parent_email || "",
+      parent_phone: request.parent_phone || "",
+      child_name: request.child_name || "",
+      relationship: request.relationship || "",
+      template_id: request.template ? request.template.toString() : "",
+    });
+
+    if (request.template) {
+      const template = templates.find(t => t.id.toString() === request.template.toString());
+      setSelectedTemplate(template || null);
+    } else {
+      setSelectedTemplate(null);
+    }
+
+    setCustomMessage(request.message || "");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const sendRequestMutation = useMutation({
     mutationFn: async (data) => {
       const uniqueLink = `${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
@@ -284,6 +305,7 @@ export default function Request() {
                   id="custom_message"
                   name="custom_message"
                   value={customMessage}
+
                   onChange={(e) => setCustomMessage(e.target.value)}
                   placeholder="Add a personal note..."
                   className="mt-2 h-24"
@@ -308,7 +330,7 @@ export default function Request() {
           </CardContent>
         </Card>
 
-        <RequestHistory requests={requests} />
+        <RequestHistory requests={requests} onReuse={handleReuseRequest} />
       </div>
     </div>
   );
