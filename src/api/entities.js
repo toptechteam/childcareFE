@@ -52,6 +52,14 @@ export const Template = {
       throw error.response?.data || error.message;
     }
   },
+  getScenarios: async () => {
+    try {
+      const response = await api.get('/templates/scenarios/');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
   findById: async (id) => {
     try {
       const response = await api.get(`/templates/${id}`);

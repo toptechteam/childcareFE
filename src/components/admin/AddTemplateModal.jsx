@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Template } from "@/api/entities";
 import {
   Dialog,
@@ -21,17 +21,33 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 
-const scenarioOptions = [
-  { value: "general", label: "General" },
-  { value: "choosing", label: "Choosing" },
-  { value: "daily", label: "Daily" },
-  { value: "recommendation", label: "Recommendation" },
-];
-
 export default function AddTemplateModal({ onClose, onSuccess, template }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isEditMode = !!template;
+
+  const { data: scenarios = [] } = useQuery({
+    queryKey: ['template-scenarios'],
+    queryFn: () => Template.getScenarios(),
+  });
+
+  const scenarioOptions = React.useMemo(() => {
+    const baseOptions = [
+      { value: "general", label: "General" },
+      { value: "choosing", label: "Choosing" },
+      { value: "daily", label: "Daily" },
+      { value: "recommendation", label: "Recommendation" },
+    ];
+    const existing = new Set(baseOptions.map((o) => o.value));
+    const dynamic = (scenarios || [])
+      .filter((s) => s && !existing.has(s))
+      .map((s) => ({ value: s, label: s }));
+    return [
+      ...baseOptions,
+      ...dynamic,
+      { value: "__custom__", label: "Add new scenario…" },
+    ];
+  }, [scenarios]);
 
   const [formData, setFormData] = useState({
     title: template?.title || "",
@@ -42,6 +58,8 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
     active: template?.active ?? true,
   });
 
+  const [customScenario, setCustomScenario] = useState("");
+
   const templateMutation = useMutation({
     mutationFn: (data) =>
       isEditMode
@@ -49,6 +67,7 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
         : Template.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
+      queryClient.invalidateQueries({ queryKey: ['template-scenarios'] });
       toast({
         title: `Template ${isEditMode ? 'updated' : 'created'} successfully`,
       });
@@ -65,7 +84,14 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    templateMutation.mutate(formData);
+    const payload = {
+      ...formData,
+      scenario:
+        formData.scenario === "__custom__" && customScenario.trim()
+          ? customScenario.trim()
+          : formData.scenario,
+    };
+    templateMutation.mutate(payload);
   };
 
   const handleChange = (e) => {
@@ -102,9 +128,14 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
               <Label htmlFor="scenario">Scenario *</Label>
               <Select
                 value={formData.scenario}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, scenario: value }))
-                }
+                onValueChange={(value) => {
+                  if (value === "__custom__") {
+                    setFormData((prev) => ({ ...prev, scenario: "__custom__" }));
+                  } else {
+                    setFormData((prev) => ({ ...prev, scenario: value }));
+                    setCustomScenario("");
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a scenario" />
@@ -117,6 +148,18 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
                   ))}
                 </SelectContent>
               </Select>
+              {formData.scenario === "__custom__" && (
+                <div className="pt-2">
+                  <Input
+                    id="custom_scenario"
+                    name="custom_scenario"
+                    value={customScenario}
+                    onChange={(e) => setCustomScenario(e.target.value)}
+                    placeholder="Type a new scenario name"
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             {/* Prompt Text */}
