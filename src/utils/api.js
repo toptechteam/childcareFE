@@ -147,8 +147,7 @@ export const authAPI = {
     } catch (error) {
       throw new Error(getApiErrorMessage(error));
     }
-  }
-  // Add other auth-related API calls here
+  },
 };
 
 export const usersAPI = {

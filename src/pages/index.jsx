@@ -144,8 +144,9 @@ function PagesContent() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/account-created" element={<AccountCreated />} />
 
-      {/* Protected Routes */}
+      {/* Protected layout: splat path so nested <Routes> match deeper segments (e.g. /dashboard) */}
       <Route
+        path="/*"
         element={
           <ProtectedRoute>
             <Layout currentPageName={currentPage}>
@@ -174,9 +175,7 @@ function PagesContent() {
             </Layout>
           </ProtectedRoute>
         }
-      >
-        <Route path="*" element={<Navigate to={getRedirectPath()} replace />} />
-      </Route>
+      />
     </Routes>
   );
 }

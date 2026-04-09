@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Elements, useStripe, useElements, CardElement, PaymentElement } from '@stripe/react-stripe-js';
+import { useState, useEffect, useMemo } from 'react';
+import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
@@ -9,8 +9,52 @@ import { authAPI, usersAPI } from '@/utils/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 
-// Load Stripe.js asynchronously
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const STRIPE_PUBLISHABLE_KEY = (import.meta.env.VITE_STRIPE_PUBLIC_KEY || '').trim();
+
+function useStripePublishableReady() {
+  const stripePromise = useMemo(
+    () => (STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : Promise.resolve(null)),
+    []
+  );
+  const [stripeLoadState, setStripeLoadState] = useState(
+    () => (STRIPE_PUBLISHABLE_KEY ? 'loading' : 'missing_key')
+  );
+
+  useEffect(() => {
+    if (!STRIPE_PUBLISHABLE_KEY) return;
+    let cancelled = false;
+    stripePromise.then((stripe) => {
+      if (cancelled) return;
+      if (!stripe) {
+        setStripeLoadState('failed');
+        return;
+      }
+      setStripeLoadState('ready');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [stripePromise]);
+
+  return { stripePromise, stripeLoadState };
+}
+
+/** Isolate Elements so `options` stay referentially stable unless `clientSecret` changes (Stripe forbids mutating clientSecret). */
+function SubscriptionElements({ stripePromise, clientSecret }) {
+  const elementsOptions = useMemo(
+    () => ({
+      clientSecret,
+      appearance: { theme: 'stripe' },
+    }),
+    [clientSecret]
+  );
+
+  return (
+    <Elements stripe={stripePromise} options={elementsOptions}>
+      <CheckoutForm clientSecret={clientSecret} />
+    </Elements>
+  );
+}
 
 function CheckoutForm({ clientSecret }) {
   const stripe = useStripe();
@@ -63,23 +107,19 @@ function CheckoutForm({ clientSecret }) {
       if (error) {
         throw new Error(error.message);
       }
-      debugger
       if (setupIntent.status === 'succeeded') {
-        const data = await authAPI.updateSubscriptionStatus({
-          payment_method: setupIntent.payment_method,
-        });
+        const data = await authAPI.updateSubscriptionStatus();
         toast({
           title: 'Payment method saved',
           description: 'Your payment method has been saved successfully',
         });
         if (data?.message == 'Subscription purchased and charged successfully via Stripe') {
-          const resp = refresh().then(() => navigate('/dashboard')).catch((err) => {
-            console.error('Error creating subscription intent:', err);
-          })
+          refresh()
+            .then(() => navigate('/dashboard'))
+            .catch((err) => {
+              console.error('Error creating subscription intent:', err);
+            });
         }
-
-
-
       }
     } catch (err) {
       console.error('Payment error:', err);
@@ -187,30 +227,101 @@ function CheckoutForm({ clientSecret }) {
 }
 
 export default function Subscription() {
-  const [clientSecret, setClientSecret] = useState('');
+  const { stripePromise, stripeLoadState } = useStripePublishableReady();
+  const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const initPayment = async () => {
+    if (stripeLoadState === 'missing_key' || stripeLoadState === 'failed') {
+      setLoading(false);
+      return;
+    }
+    if (stripeLoadState !== 'ready') {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
       try {
         const { client_secret } = await authAPI.createSubscriptionIntent();
-        setClientSecret(client_secret);
+        if (cancelled) return;
+        if (!client_secret) {
+          setError(
+            'Payment setup did not return a client secret. Check backend Stripe configuration.'
+          );
+          return;
+        }
+        setClientSecret((prev) => prev ?? client_secret);
       } catch (err) {
-        console.error('Error initializing payment:', err);
-        setError('Failed to initialize payment. Please try again.');
+        if (!cancelled) {
+          console.error('Error initializing payment:', err);
+          setError('Failed to initialize payment. Please try again.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
+    })();
+
+    return () => {
+      cancelled = true;
     };
+  }, [stripeLoadState]);
 
-    initPayment();
-  }, []);
-
-  if (loading) {
+  if (stripeLoadState === 'missing_key') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#7ACDE0]"></div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-500">Payments not configured</CardTitle>
+            <CardDescription className="text-left space-y-2">
+              <p>
+                The Stripe publishable key is missing. Set{' '}
+                <code className="text-xs bg-muted px-1 rounded">VITE_STRIPE_PUBLIC_KEY</code> in
+                the environment used when you build the frontend, then redeploy.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Vite bakes this in at build time (it is not read from the server at runtime).
+              </p>
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (stripeLoadState === 'failed') {
+    const isInsecure =
+      typeof window !== 'undefined' &&
+      window.location.protocol !== 'https:' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-500">Stripe did not load</CardTitle>
+            <CardDescription className="text-left space-y-2">
+              <p>
+                Check that <code className="text-xs bg-muted px-1 rounded">VITE_STRIPE_PUBLIC_KEY</code>{' '}
+                is a valid <code className="text-xs">pk_live_...</code> or{' '}
+                <code className="text-xs">pk_test_...</code> key for this site.
+              </p>
+              {isInsecure ? (
+                <p className="text-sm text-amber-700">
+                  Stripe usually requires <strong>HTTPS</strong> on non-localhost sites. Serve this app
+                  over HTTPS or use localhost for development.
+                </p>
+              ) : null}
+              <p className="text-sm text-muted-foreground">
+                If the form is blank, your host may be blocking scripts or frames (CSP). Allow{' '}
+                <code className="text-xs">https://js.stripe.com</code> in script-src and frame-src.
+              </p>
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
@@ -236,17 +347,19 @@ export default function Subscription() {
     );
   }
 
+  if (stripeLoadState === 'loading' || loading || !clientSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#7ACDE0]"></div>
+      </div>
+    );
+  }
+
   return (
-    <Elements
-      stripe={stripePromise}
-      options={{
-        clientSecret,
-        appearance: {
-          theme: 'stripe',
-        },
-      }}
-    >
-      <CheckoutForm clientSecret={clientSecret} />
-    </Elements>
+    <SubscriptionElements
+      key={clientSecret}
+      stripePromise={stripePromise}
+      clientSecret={clientSecret}
+    />
   );
 }
