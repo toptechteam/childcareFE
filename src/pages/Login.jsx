@@ -61,7 +61,12 @@ export default function Login() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-[#7ACDE0] text-center">Welcome back</CardTitle>
+          <CardTitle
+            className="text-2xl font-bold text-[#7ACDE0] text-center cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            Welcome back
+          </CardTitle>
           <CardDescription className="text-center text-[#7ACDE0]">
             Enter your email and password to sign in to your account
           </CardDescription>
@@ -102,14 +107,14 @@ export default function Login() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button c type="submit" className="w-full bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
             <div className="text-sm text-center text-[#7ACDE0] dark:text-[#7ACDE0]">
               Don't have an account?{' '}
-              <a href="#" className="font-medium text-primary  hover:text-[#7ACDE0] hover:underline">
-                Contact support
-              </a>
+              <Link to="/setup" className="font-medium text-primary hover:text-[#7ACDE0] hover:underline">
+                Start free trial
+              </Link>
             </div>
           </CardFooter>
         </form>

@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { User } from "@/api/entities";
 import LandingPage from "./LandingPage";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   
   // Check if we're on the app subdomain or main domain
   const isAppDomain = window.location.hostname.includes('app.');

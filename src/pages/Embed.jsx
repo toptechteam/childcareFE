@@ -9,20 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import EmbedPreview from "../components/embed/EmbedPreview";
 import { useAuth } from "@/contexts/AuthContext";
+import { PUBLIC_SITE_ORIGIN, testimonialsByCentreEndpoint } from "@/config/urls";
 
 export default function Embed() {
   const [copied, setCopied] = useState(false);
 
   // Renamed 'center' to 'centre' for Australian spelling
   const { user } = useAuth();
+  const centerId = user?.center_id;
   const { data: centre } = useQuery({
-    queryKey: ['centre'],
+    queryKey: ["center", centerId],
     queryFn: async () => {
-      return await Center.findById(user?.center_id);
+      return await Center.findById(centerId);
     },
+    enabled: !!centerId,
   });
 
   
+
+  const centreId = centre?.id ?? "__CENTRE_ID__";
+  const testimonialsEndpoint = testimonialsByCentreEndpoint(centreId);
 
   const embedCode = `<!-- ChildcareStories Testimonial Widget --> 
   <div id="childcare-testimonials" class="testimonials-container"></div>
@@ -81,7 +87,7 @@ export default function Embed() {
       }
   
       // Fetch and render testimonials
-      fetch(https://childcarestories.com.au/soptima/api/testimonials/${centre?.id}/')
+      fetch('${testimonialsEndpoint}')
         .then(response => {
           if (!response.ok) throw new Error('Network response was not ok');
           return response.json();
@@ -259,7 +265,7 @@ export default function Embed() {
       }
     }
   </style>
-  <!-- Powered by ChildcareStories.com.au -->`;
+  <!-- Powered by ${PUBLIC_SITE_ORIGIN} -->`;
 
 
   const handleCopy = () => {
@@ -334,7 +340,15 @@ export default function Embed() {
 
               <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
                 <p className="text-sm text-[#555555]">
-                  Powered by <span className="font-semibold text-[#8AE0F2]">ChildcareStories.com.au</span>
+                  Powered by{" "}
+                  <a
+                    href={PUBLIC_SITE_ORIGIN}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-[#8AE0F2] hover:underline"
+                  >
+                    ChildcareStories.com.au
+                  </a>
                 </p>
               </div>
             </CardContent>

@@ -1,4 +1,14 @@
-import api from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
+
+/** Map frontend `sort` to DRF `ordering` for testimonial-request list endpoints. */
+function testimonialListParams(query = {}) {
+  const params = { ...query };
+  if (params.sort != null && params.ordering == null) {
+    params.ordering = params.sort;
+    delete params.sort;
+  }
+  return params;
+}
 
 export const Center = {
   find: async (query = {}) => {
@@ -11,7 +21,7 @@ export const Center = {
   },
   findById: async (id) => {
     try {
-      const response = await api.get(`/centers/${id}`);
+      const response = await api.get(`/centers/${id}/`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -97,7 +107,9 @@ export const Template = {
 export const TestimonialRequest = {
   find: async (query = {}) => {
     try {
-      const response = await api.get('/testimonial-requests', { params: query });
+      const response = await api.get('/testimonial-requests/', {
+        params: testimonialListParams(query),
+      });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -116,7 +128,7 @@ export const TestimonialRequest = {
       const response = await api.post('/testimonial-requests/', data);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw new Error(getApiErrorMessage(error));
     }
   },
   update: async (id, data) => {
@@ -124,7 +136,7 @@ export const TestimonialRequest = {
       const response = await api.patch(`/testimonial-requests/${id}/`, data);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw new Error(getApiErrorMessage(error));
     }
   },
   delete: async (id) => {
@@ -167,7 +179,9 @@ export const TestimonialRequest = {
 export const Testimonial = {
   find: async (query = {}) => {
     try {
-      const response = await api.get('/requests/', { params: query });
+      const response = await api.get('/testimonial-requests/', {
+        params: testimonialListParams(query),
+      });
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

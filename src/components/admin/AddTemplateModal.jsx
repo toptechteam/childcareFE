@@ -38,10 +38,13 @@ export default function AddTemplateModal({ onClose, onSuccess, template }) {
       { value: "daily", label: "Daily" },
       { value: "recommendation", label: "Recommendation" },
     ];
-    const existing = new Set(baseOptions.map((o) => o.value));
-    const dynamic = (scenarios || [])
-      .filter((s) => s && !existing.has(s))
-      .map((s) => ({ value: s, label: s }));
+    const seenLower = new Set(baseOptions.map((o) => o.value.toLowerCase()));
+    const dynamic = [];
+    for (const s of scenarios || []) {
+      if (!s || seenLower.has(String(s).toLowerCase())) continue;
+      seenLower.add(String(s).toLowerCase());
+      dynamic.push({ value: s, label: s });
+    }
     return [
       ...baseOptions,
       ...dynamic,

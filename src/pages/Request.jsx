@@ -1,20 +1,18 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Heart, Sparkles } from "lucide-react";
-import { format } from "date-fns";
+import { Send, Heart } from "lucide-react";
 
 import { Center, Template, TestimonialRequest } from "@/api/entities";
 import RequestHistory from "../components/request/RequestHistory";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getApiErrorMessage } from "@/utils/api";
 
 export default function Request() {
   const queryClient = useQueryClient();
@@ -30,12 +28,14 @@ export default function Request() {
   const [customMessage, setCustomMessage] = useState("");
 
   const { user } = useAuth();
+  const centerId = user?.center_id;
     const { data: center } = useQuery({
-      queryKey: ['center'],
+      queryKey: ["center", centerId],
       queryFn: async () => {
-        const centers = await Center.findById(user?.center_id);
+        const centers = await Center.findById(centerId);
         return centers;
       },
+      enabled: !!centerId,
     });
 
   const { data: templates = [] } = useQuery({
@@ -72,70 +72,21 @@ export default function Request() {
   const sendRequestMutation = useMutation({
     mutationFn: async (data) => {
       const uniqueLink = `${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
-      const selectedTemplate = templates.find(t => t.id === data.template_id);
-
+      const selectedTemplate = templates.find((t) => t.id === data.template_id);
       const requestData = {
         ...data,
         unique_link: uniqueLink,
-        // status: 'active',
         sent_date: new Date().toISOString(),
         center_id: center?.id,
-        message: customMessage || selectedTemplate?.default_message || ''
+        message:
+          customMessage || selectedTemplate?.default_message || "",
       };
-      try {
-        const resp = await TestimonialRequest.create(requestData);
-        await queryClient.invalidateQueries({ queryKey: ['requests'] });
-        toast({
-          title: 'Success',
-          description: 'Request sent successfully',
-          variant: 'default',
-        });
-        return resp
-      }
-      catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to send email',
-          variant: 'destructive',
-        });
-      }
-      debugger
-      if (selectedTemplate) {
-        let emailBody = customMessage || selectedTemplate.email_body || '';
-        emailBody = emailBody.replace(/\[Parent Name\]/g, data.parent_name || '');
-        emailBody = emailBody.replace(/\[Child Name\]/g, data.child_name || '');
-        emailBody = emailBody.replace(/\[Center Name\]/g, center?.center_name || 'Our Center');
-        emailBody += `\n\nClick here to submit your testimonial: https://childcarestories.com.au${createPageUrl('Submit')}?link=${uniqueLink}`;
-
-        // Send email using the API
-        try {
-          await fetch('/api/send-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              to: data.parent_email,
-              subject: selectedTemplate.email_subject || 'Share Your Experience With Us',
-              body: emailBody,
-              from_name: center?.center_name || 'ChildcareStories'
-            }),
-          });
-        } catch (error) {
-          toast({
-            title: 'Error',
-            description: error.message || 'Failed to send email',
-            variant: 'destructive',
-          });
-          console.error('Failed to send email:', error);
-          // Continue even if email fails
-        }
-      }
-
-      return createdRequest;
+      return TestimonialRequest.create(requestData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['requests'] });
+      queryClient.invalidateQueries({ queryKey: ["requests"] });
+      queryClient.invalidateQueries({ queryKey: ["testimonials-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["center"] });
       setFormData({
         parent_name: "",
         parent_email: "",
@@ -146,14 +97,22 @@ export default function Request() {
       });
       setCustomMessage("");
       toast({
-        title: 'Success',
-        description: 'Request sent successfully!',
+        title: "Request sent",
+        description: "The parent will receive your email invitation.",
       });
     },
     onError: (error) => {
+      const description =
+        error instanceof Error
+          ? error.message
+          : getApiErrorMessage(error);
       toast({
-        title: 'Error',
-        description: 'Failed to sent request!',
+        title: "Could not send request",
+        description:
+          description && description !== "Request failed"
+            ? description
+            : "Something went wrong. Please try again.",
+        variant: "destructive",
       });
     },
   });

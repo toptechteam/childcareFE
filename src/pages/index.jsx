@@ -18,6 +18,7 @@ import SubscriptionCheck from '@/components/SubscriptionCheck';
 import Subscription from "./Subscription.jsx";
 import ResetPassword from "./ResetPassword.jsx";
 import ForgotPassword from "./ForgotPassword.jsx";
+import AccountCreated from "./AccountCreated.jsx";
 
 const PAGES = {
   Dashboard,
@@ -32,6 +33,7 @@ const PAGES = {
   Home,
   LandingPage,
   Login,
+  AccountCreated,
 };
 
 function _getCurrentPage(url) {
@@ -53,8 +55,9 @@ function ProtectedRoute({ children }) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!isAuthenticated && location.pathname !== '/login') {
-    return <Navigate to="/" state={{ from: location }} replace />;
+  const publicPaths = ['/login', '/', '/setup', '/submit', '/forgot-password', '/reset-password', '/account-created'];
+  if (!isAuthenticated && !publicPaths.includes(location.pathname)) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return (
@@ -83,7 +86,6 @@ function AdminRoute({ children }) {
 
 // User route wrapper
 function UserRoute({ children }) {
-  debugger
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
@@ -138,26 +140,9 @@ function PagesContent() {
           )
         }
       />
-      <Route
-        path="/forgot-password"
-        element={
-          isAuthenticated ? (
-            <Navigate to={getRedirectPath()} replace />
-          ) : (
-            <ForgotPassword />
-          )
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          isAuthenticated ? (
-            <Navigate to={getRedirectPath()} replace />
-          ) : (
-            <ResetPassword />
-          )
-        }
-      />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/account-created" element={<AccountCreated />} />
 
       {/* Protected Routes */}
       <Route

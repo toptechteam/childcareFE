@@ -1,45 +1,158 @@
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crown, MapPin, Calendar, CreditCard, Building2, Settings as SettingsIcon, ExternalLink } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { Crown, MapPin, Calendar, CreditCard, Building2, Settings as SettingsIcon, KeyRound } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Center } from "@/api/entities";
-import { createCheckout, createCustomerPortal } from "@/api/functions";
+import { createCustomerPortal, listPaymentMethods } from "@/api/functions";
 import { useAuth } from "@/contexts/AuthContext";
+import { usersAPI, authAPI } from "@/utils/api";
 
 export default function Settings() {
    const { user } = useAuth();
-  const { data: center } = useQuery({
-    queryKey: ['center'],
-    queryFn: async () => {
-      const centers = await Center.findById(user?.center_id);
-      return centers;
+  const { toast } = useToast();
+  const [changePwdOpen, setChangePwdOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const resetPasswordForm = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () =>
+      authAPI.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword,
+      }),
+    onSuccess: (data) => {
+      toast({
+        title: "Password updated",
+        description: data?.message || "You remain signed in with your current session.",
+      });
+      setChangePwdOpen(false);
+      resetPasswordForm();
+    },
+    onError: (error) => {
+      toast({
+        title: "Could not update password",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
+
+  const handleChangePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "New password and confirmation must be the same.",
+        variant: "destructive",
+      });
+      return;
+    }
+    changePasswordMutation.mutate();
+  };
+  const centerId = user?.center_id;
+  const { data: center } = useQuery({
+    queryKey: ["center", centerId],
+    queryFn: async () => {
+      const centers = await Center.findById(centerId);
+      return centers;
+    },
+    enabled: !!centerId,
+  });
+
+  const { data: pkg } = useQuery({
+    queryKey: ["centerPackage", center?.subscription_plan],
+    queryFn: () => usersAPI.getPackageById(center.subscription_plan),
+    enabled: !!center?.subscription_plan && !center?.package,
+  });
+
+  const effectivePackage = center?.package || pkg;
+  const planDisplayName =
+    effectivePackage?.name || center?.subscription_plan_name || "Plan";
 
   const daysRemaining = center?.trial_end_date 
     ? differenceInDays(new Date(center.trial_end_date), new Date())
     : 7;
 
-  const handleUpgrade = async (plan) => {
-    try {
-      const response = await createCheckout(plan, center?.id);
-      if (response?.url) {
-        window.location.href = response.url;
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
+  const stripeStatus = String(center?.subscription_status || "").toLowerCase();
+  const hasPositivePeriodDays =
+    center?.subscription_days_remaining != null && center.subscription_days_remaining > 0;
+  const stripePaidLike = stripeStatus === "active" || stripeStatus === "trialing";
+  const subscriptionEnd = center?.subscription_end_date
+    ? new Date(center.subscription_end_date)
+    : null;
+  const periodEndInFuture =
+    Boolean(subscriptionEnd) &&
+    !Number.isNaN(subscriptionEnd.getTime()) &&
+    subscriptionEnd > new Date();
+  const subscriptionLooksActive =
+    center?.subscription_active === true ||
+    user?.subscription_active === true ||
+    stripePaidLike ||
+    hasPositivePeriodDays ||
+    periodEndInFuture;
+
+  const subscriptionStatusLine = (() => {
+    if (center?.is_trial) {
+      return `${center?.trial_days_remaining ?? daysRemaining} day(s) remaining in your trial`;
     }
-  };
+    if (stripeStatus === "past_due") {
+      return "Payment past due — update your payment method";
+    }
+    if (stripeStatus === "canceled" || stripeStatus === "cancelled") {
+      return "Subscription canceled";
+    }
+    // Prefer “active” signals over Stripe status labels — DB status can stay
+    // `incomplete` briefly (or longer) after a successful charge.
+    if (hasPositivePeriodDays) {
+      return `${center.subscription_days_remaining} day(s) left in current period`;
+    }
+    if (subscriptionLooksActive) {
+      return "Active subscription";
+    }
+    if (
+      stripeStatus === "unpaid" ||
+      stripeStatus === "incomplete" ||
+      stripeStatus === "incomplete_expired"
+    ) {
+      return "Payment required to activate your subscription";
+    }
+    return "No active subscription";
+  })();
+
+  const { data: paymentMethods } = useQuery({
+    queryKey: ["paymentMethods"],
+    queryFn: () => listPaymentMethods(),
+    enabled: !!user,
+  });
 
   const handleManageBilling = async () => {
     try {
-      const response = await createCustomerPortal(center?.stripe_customer_id);
+      const response = await createCustomerPortal(`${window.location.origin}/settings`);
       if (response?.url) {
         window.open(response.url, '_blank');
       }
@@ -58,6 +171,97 @@ export default function Settings() {
       </div>
 
       <div className="grid gap-6">
+        <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <KeyRound className="w-5 h-5 text-[#8AE0F2]" />
+              Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-500">Signed in as</p>
+              <p className="font-medium text-gray-900">{user?.email || "—"}</p>
+            </div>
+            <p className="text-sm text-gray-600">
+              Update your password here while signed in. Your session stays active.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setChangePwdOpen(true)}
+            >
+              Change password
+            </Button>
+            <Dialog
+              open={changePwdOpen}
+              onOpenChange={(open) => {
+                setChangePwdOpen(open);
+                if (!open) resetPasswordForm();
+              }}
+            >
+              <DialogContent className="sm:max-w-md">
+                <form onSubmit={handleChangePasswordSubmit}>
+                  <DialogHeader>
+                    <DialogTitle>Change password</DialogTitle>
+                    <DialogDescription>
+                      Enter your current password, then choose a new one. You will stay logged in.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="settings-current-password">Current password</Label>
+                      <Input
+                        id="settings-current-password"
+                        type="password"
+                        autoComplete="current-password"
+                        value={currentPassword}
+                        onChange={(ev) => setCurrentPassword(ev.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="settings-new-password">New password</Label>
+                      <Input
+                        id="settings-new-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={(ev) => setNewPassword(ev.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="settings-confirm-password">Confirm new password</Label>
+                      <Input
+                        id="settings-confirm-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(ev) => setConfirmPassword(ev.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setChangePwdOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={changePasswordMutation.isPending}>
+                      {changePasswordMutation.isPending ? "Saving…" : "Update password"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+
         <Card className="bg-gradient-to-br from-[#8AE0F2] to-[#7ACDE0] text-white border-0 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -68,79 +272,62 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Badge className="bg-white/20 text-white border-white/30 mb-2">
-                  {center?.subscription_plan === 'trial' ? 'Free Trial' : center?.subscription_plan}
-                </Badge>
-                <p className="text-white/90">
-                  {center?.subscription_plan === 'trial' 
-                    ? `${daysRemaining} days remaining in your trial`
-                    : 'Active subscription'}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge className="bg-white/20 text-white border-white/30">
+                    {planDisplayName}
+                  </Badge>
+                  {center?.is_trial ? (
+                    <Badge className="bg-white/30 text-white border-white/40">
+                      Free trial
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-white/90">{subscriptionStatusLine}</p>
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold">
-                  {center?.subscription_plan === 'starter' && '$29'}
-                  {center?.subscription_plan === 'professional' && '$79'}
-                  {center?.subscription_plan === 'enterprise' && '$149'}
-                  {center?.subscription_plan === 'trial' && '$0'}
+                  {effectivePackage?.price_monthly
+                    ? `$${effectivePackage.price_monthly}`
+                    : "—"}
                 </p>
-                <p className="text-white/80 text-sm">per month</p>
+                <p className="text-white/80 text-sm">
+                  {center?.is_trial
+                    ? "per month after trial"
+                    : "per month"}
+                </p>
               </div>
             </div>
 
-            {center?.subscription_plan === 'trial' && (
-              <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <h3 className="font-semibold mb-2">Choose Your Plan:</h3>
-                <div className="grid gap-3">
-                  <button
-                    onClick={() => handleUpgrade('starter')}
-                    className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-left transition-all"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">Starter - $29/month</p>
-                        <p className="text-sm text-white/80">5 testimonials, 2min videos</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4" />
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleUpgrade('professional')}
-                    className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-left transition-all"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">Professional - $79/month</p>
-                        <p className="text-sm text-white/80">50 testimonials, 5min videos</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4" />
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleUpgrade('enterprise')}
-                    className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-left transition-all"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold">Enterprise - $149/month</p>
-                        <p className="text-sm text-white/80">Unlimited testimonials, 10min videos</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4" />
-                    </div>
-                  </button>
-                </div>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="text-xs text-white/80">This month</p>
+                <p className="text-lg font-semibold">
+                  {center?.testimonials_this_month || 0} / {Number(center?.monthly_testimonials_limit) === 0 ? "Unlimited" : center?.monthly_testimonials_limit || 0}
+                </p>
               </div>
-            )}
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="text-xs text-white/80">Plan limit</p>
+                <p className="text-lg font-semibold">
+                  {effectivePackage?.testimonials_limit === 0 ? "Unlimited" : effectivePackage?.testimonials_limit || 0} testimonials
+                </p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-3">
+                <p className="text-xs text-white/80">Video limit</p>
+                <p className="text-lg font-semibold">
+                  {effectivePackage?.video_duration_limit
+                    ? `${Number(effectivePackage.video_duration_limit)} min`
+                    : "—"}
+                </p>
+              </div>
+            </div>
 
-            {center?.subscription_status === 'active' && center?.stripe_customer_id && (
-              <Button 
-                onClick={handleManageBilling}
-                className="w-full bg-white text-[#8AE0F2] hover:bg-gray-50 font-semibold"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Manage Billing & Subscription
-              </Button>
-            )}
+            <Button
+              onClick={handleManageBilling}
+              className="w-full bg-white text-[#8AE0F2] hover:bg-gray-50 font-semibold"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Manage billing / add payment method / change or cancel plan
+            </Button>
           </CardContent>
         </Card>
 
@@ -152,16 +339,17 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="mt-2" />
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Center Name</p>
                 <p className="font-semibold text-gray-900">{center?.center_name || 'Not set'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Locations</p>
+                <p className="text-sm text-gray-500 mb-1">Address</p>
                 <p className="font-semibold text-gray-900 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  {center?.locations_count || 1}
+                  {center?.address || "Not set"}
                 </p>
               </div>
               <div>
@@ -172,10 +360,39 @@ export default function Settings() {
                 <p className="text-sm text-gray-500 mb-1">Phone</p>
                 <p className="font-semibold text-gray-900">{center?.contact_phone || 'Not set'}</p>
               </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Website</p>
+                <p className="font-semibold text-gray-900">{center?.website_url || 'Not set'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Brand colors</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded border border-gray-200"
+                      style={{ backgroundColor: center?.primary_color || "#ffffff" }}
+                      title={center?.primary_color || ""}
+                    />
+                    <span className="text-sm text-gray-700">
+                      {center?.primary_color || "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-5 h-5 rounded border border-gray-200"
+                      style={{ backgroundColor: center?.secondary_color || "#ffffff" }}
+                      title={center?.secondary_color || ""}
+                    />
+                    <span className="text-sm text-gray-700">
+                      {center?.secondary_color || "—"}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Link to={createPageUrl("Setup")}>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full mt-4">
                 <SettingsIcon className="w-4 h-4 mr-2" />
                 Edit Center Information
               </Button>
@@ -187,14 +404,34 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Billing Information
+              Payment methods
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 rounded-xl p-6 text-center">
-              <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p className="text-gray-600 mb-4">No payment method on file</p>
-              <Button variant="outline">Add Payment Method</Button>
+            <div className="bg-gray-50 rounded-xl p-6">
+              {paymentMethods?.cards?.length ? (
+                <div className="space-y-2">
+                  {paymentMethods.cards.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                      <div className="text-sm text-gray-700">
+                        <span className="font-semibold">{(c.brand || "").toUpperCase()}</span>{" "}
+                        •••• {c.last4} (exp {c.exp_month}/{c.exp_year})
+                      </div>
+                    </div>
+                  ))}
+                  <Button onClick={handleManageBilling} variant="outline" className="w-full mt-4">
+                    Manage payment methods in Stripe
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <p className="text-gray-600 mb-4">No payment method on file</p>
+                  <Button onClick={handleManageBilling} variant="outline">
+                    Add Payment Method
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* <div className="mt-6 pt-6 border-t border-gray-200">

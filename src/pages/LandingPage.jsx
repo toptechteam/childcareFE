@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { appSiteUrl, TESTIMONIALS_PUBLIC_ENDPOINT } from "@/config/urls";
+import { usersAPI } from "@/utils/api";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import {
   Video,
   Mic,
@@ -18,8 +22,10 @@ import {
   Mail,
   Phone
 } from "lucide-react";
+import { HELLO_EMAIL, SUPPORT_EMAIL } from "@/config/urls";
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const features = [
     {
       icon: Video,
@@ -52,52 +58,22 @@ export default function LandingPage() {
       description: "Match your centre's colours and branding perfectly"
     }
   ];
+  const { data: packages = [], isLoading: isLoadingPackages } = useQuery({
+    queryKey: ["publicPackages"],
+    queryFn: () => usersAPI.getPublicPackages(),
+  });
 
+  const visiblePackages = Array.isArray(packages)
+    ? packages.filter((p) => p?.active)
+    : [];
 
-
-  const plans = [
-    {
-      name: "Starter",
-      price: "$29",
-      period: "/month",
-      features: [
-        "5 testimonials per month",
-        "2-minute video length",
-        "Email requests",
-        "Basic analytics",
-        "Website embed widget"
-      ],
-      popular: false
-    },
-    {
-      name: "Professional",
-      price: "$79",
-      period: "/month",
-      features: [
-        "50 testimonials per month",
-        "5-minute video length",
-        "Custom email templates",
-        "Advanced analytics",
-        "Priority support",
-        "Brand customization"
-      ],
-      popular: true
-    },
-    {
-      name: "Enterprise",
-      price: "$149",
-      period: "/month",
-      features: [
-        "Unlimited testimonials",
-        "10-minute video length",
-        "Multi-location support",
-        "Dedicated account manager",
-        "Custom integrations",
-        "White-label options"
-      ],
-      popular: false
+  const handleStartTrial = (pkgId) => {
+    if (pkgId) {
+      navigate(`/setup?package=${encodeURIComponent(pkgId)}`);
+      return;
     }
-  ];
+    navigate("/setup");
+  };
 
   const stats = [
     { value: "10,000+", label: "Happy Families" },
@@ -114,7 +90,7 @@ export default function LandingPage() {
     const fetchTestimonials = async () => {
       try {
         console.log('Fetching testimonials...');
-        const response = await fetch('https://childcarestories.com.au/soptima/api/testimonials-public/');
+        const response = await fetch(TESTIMONIALS_PUBLIC_ENDPOINT);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -240,7 +216,7 @@ export default function LandingPage() {
                 Build trust, attract new families, and showcase your childcare centre's amazing impact.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a href="https://app.childcarestories.com.au/Setup">
+                <a href="/setup">
                   <Button size="lg" className="bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white text-lg px-8 py-6">
                     Get Started Free
                     <ArrowRight className="w-5 h-5 ml-2" />
@@ -458,42 +434,78 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {plans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.popular ? 'border-2 border-[#8AE0F2] shadow-2xl scale-105' : 'border-gray-100'}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-[#8AE0F2] text-white px-4 py-1 rounded-full text-sm font-semibold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <CardContent className="p-8">
-                  <h3 className="logo-text text-2xl font-bold text-[#000000] mb-2">
-                    {plan.name}
-                  </h3>
-                  <div className="mb-6">
-                    <span className="text-5xl font-bold text-[#000000]">{plan.price}</span>
-                    <span className="text-[#555555]">{plan.period}</span>
-                  </div>
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-[#8AE0F2] flex-shrink-0 mt-0.5" />
-                        <span className="body-text text-[#555555]">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <a href="https://app.childcarestories.com.au/Setup">
-                    <Button
-                      className={`w-full ${plan.popular ? 'bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white' : 'bg-white border-2 border-[#8AE0F2] text-[#000000] hover:bg-[#8AE0F2]/5'}`}
-                      size="lg"
-                    >
-                      Start Free Trial
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            ))}
+            {isLoadingPackages ? (
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white rounded-xl p-8 h-96 animate-pulse border border-gray-100" />
+                ))}
+              </>
+            ) : (
+              visiblePackages.map((pkg, index) => {
+                const features = Array.isArray(pkg.features) ? pkg.features : [];
+                const isPopular = index === 1;
+                const monthly = pkg.price_monthly ? `$${pkg.price_monthly}` : "$0";
+                return (
+                  <Card
+                    key={pkg.id}
+                    className={`relative ${isPopular ? "border-2 border-[#8AE0F2] shadow-2xl scale-105" : "border-gray-100"}`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-[#8AE0F2] text-white px-4 py-1 rounded-full text-sm font-semibold">
+                          Most Popular
+                        </span>
+                      </div>
+                    )}
+                    <CardContent className="p-8">
+                      <h3 className="logo-text text-2xl font-bold text-[#000000] mb-2">
+                        {pkg.name}
+                      </h3>
+                      <div className="mb-2">
+                        <span className="text-5xl font-bold text-[#000000]">{monthly}</span>
+                        <span className="text-[#555555]">/month</span>
+                      </div>
+                      <p className="text-sm text-[#555555] mb-6">
+                        {pkg.description || ""}
+                      </p>
+
+                      <ul className="space-y-4 mb-8">
+                        <li className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-[#8AE0F2] flex-shrink-0 mt-0.5" />
+                          <span className="body-text text-[#555555]">
+                            {pkg.testimonials_limit === 0
+                              ? "Unlimited testimonials per month"
+                              : `${pkg.testimonials_limit} testimonials per month`}
+                          </span>
+                        </li>
+                        {pkg.video_duration_limit ? (
+                          <li className="flex items-start gap-3">
+                            <CheckCircle2 className="w-5 h-5 text-[#8AE0F2] flex-shrink-0 mt-0.5" />
+                            <span className="body-text text-[#555555]">
+                              {pkg.video_duration_limit}-minute video length
+                            </span>
+                          </li>
+                        ) : null}
+                        {features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <CheckCircle2 className="w-5 h-5 text-[#8AE0F2] flex-shrink-0 mt-0.5" />
+                            <span className="body-text text-[#555555]">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Button
+                        onClick={() => handleStartTrial(pkg.id)}
+                        className={`w-full ${isPopular ? "bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white" : "bg-white border-2 border-[#8AE0F2] text-[#000000] hover:bg-[#8AE0F2]/5"}`}
+                        size="lg"
+                      >
+                        Start Free Trial
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
           <p className="body-text text-center text-[#555555] mt-8">
             All plans include our 7-day free trial. Additional locations available for $11/month each.
@@ -510,7 +522,7 @@ export default function LandingPage() {
           <p className="body-text text-xl mb-8 text-white/90">
             Join hundreds of childcare centres using ChildcareStories to showcase their impact.
           </p>
-          <a href="https://app.childcarestories.com.au/Setup">
+          <a href="/setup">
             <Button size="lg" className="bg-white text-[#8AE0F2] hover:bg-gray-100 text-lg px-8 py-6">
               Start Your Free Trial
               <ArrowRight className="w-5 h-5 ml-2" />
@@ -541,14 +553,20 @@ export default function LandingPage() {
               <ul className="space-y-2 body-text text-sm text-white/60">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="https://app.childcarestories.com.au" className="hover:text-white transition-colors">Sign In</a></li>
+                <li><a href={appSiteUrl("/")} className="hover:text-white transition-colors">Sign In</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 body-text text-sm text-white/60">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                <li>
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Childcare Stories Support")}`}
+                    className="hover:text-white transition-colors"
+                  >
+                    Contact Childcare Stories Support
+                  </a>
+                </li>
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
               </ul>
@@ -558,7 +576,7 @@ export default function LandingPage() {
               <ul className="space-y-3 body-text text-sm text-white/60">
                 <li className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  hello@childcarestories.com.au
+                  {HELLO_EMAIL}
                 </li>
                 <li className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />

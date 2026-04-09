@@ -1,18 +1,32 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { Link } from 'react-router-dom';
 import { authAPI } from '@/utils/api';
+import { createPageUrl } from '@/utils';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const fromNav = location.state?.email;
+    if (typeof fromNav === 'string' && fromNav.trim()) {
+      setEmail(fromNav.trim());
+      return;
+    }
+    if (user?.email) {
+      setEmail((prev) => (prev ? prev : user.email));
+    }
+  }, [location.state, user?.email]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,11 +89,13 @@ export default function ForgotPassword() {
               Resend email
             </Button>
             <Button
-              onClick={() => navigate('/login')}
+              onClick={() =>
+                isAuthenticated ? navigate(createPageUrl('Settings')) : navigate('/login')
+              }
               variant="ghost"
               className="w-full text-[#7ACDE0] hover:bg-[#7ACDE0]/10"
             >
-              Back to login
+              {isAuthenticated ? 'Back to settings' : 'Back to login'}
             </Button>
           </CardFooter>
         </Card>
@@ -119,11 +135,22 @@ export default function ForgotPassword() {
             >
               {isLoading ? 'Sending...' : 'Send reset link'}
             </Button>
-            <div className="text-center text-sm">
-              <span className="text-gray-600 dark:text-gray-300">Remember your password? </span>
-              <Link to="/login" className="font-medium text-[#7ACDE0] hover:underline">
-                Sign in
-              </Link>
+            <div className="text-center text-sm space-y-2">
+              {isAuthenticated ? (
+                <Link
+                  to={createPageUrl('Settings')}
+                  className="font-medium text-[#7ACDE0] hover:underline block"
+                >
+                  Back to settings
+                </Link>
+              ) : (
+                <>
+                  <span className="text-gray-600 dark:text-gray-300">Remember your password? </span>
+                  <Link to="/login" className="font-medium text-[#7ACDE0] hover:underline">
+                    Sign in
+                  </Link>
+                </>
+              )}
             </div>
           </CardFooter>
         </form>

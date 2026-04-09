@@ -28,12 +28,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const planDetails = {
-  starter: { price: 29, testimonials: 5, videoDuration: 120 },
-  professional: { price: 79, testimonials: 50, videoDuration: 300 },
-  enterprise: { price: 149, testimonials: 999999, videoDuration: 600 },
-};
-
 export default function ClientDetailsModal({ center, onClose }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("info");
@@ -57,14 +51,12 @@ export default function ClientDetailsModal({ center, onClose }) {
   });
 
   const [selectedPlan, setSelectedPlan] = useState(center.subscription_plan?.toString() || '');
-  const [selectedStatus, setSelectedStatus] = useState(center.is_trial ? 'trial' : 'active');
 
   // Update selected plan when center data changes
   useEffect(() => {
     if (center.subscription_plan) {
       setSelectedPlan(center.subscription_plan.toString());
     }
-    setSelectedStatus(center.is_trial ? 'trial' : 'active');
   }, [center]);
 
   const updateCenterMutation = useMutation({
@@ -97,7 +89,7 @@ export default function ClientDetailsModal({ center, onClose }) {
     isLoading: isLoadingPackages,
     error: packagesError
   } = useQuery({
-    queryKey: ['packages'],
+    queryKey: ['allPackages'],
     queryFn: () => usersAPI.getPackageList(),
     enabled: !!center?.subscription_plan, // Only fetch if there's a subscription plan
   });
@@ -182,16 +174,60 @@ export default function ClientDetailsModal({ center, onClose }) {
     updateCenterMutation.mutate({
       subscription_plan: selectedPlan,
       subscription_plan_info: planInfo,
-      is_trial: selectedStatus === 'trial',
     });
   };
+  const currentPkg = packages.find((p) => String(p.id) === String(center.subscription_plan));
+  const monthlyLimit = center.monthly_testimonials_limit;
+  const monthlyLimitLabel = Number(monthlyLimit) === 0 ? "Unlimited" : monthlyLimit;
+  const videoLimitMinutes = currentPkg?.video_duration_limit
+    ? Number(currentPkg.video_duration_limit)
+    : null;
 
-  const handleResetUsage = () => {
-    updateCenterMutation.mutate({
-      testimonials_this_month: 0,
-      billing_period_start: new Date().toISOString(),
-    });
-  };
+  const resetUsageMutation = useMutation({
+    mutationFn: () => usersAPI.resetCenterUsage(center.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allCenters"] });
+      toast({ title: "Success", description: "Usage period reset." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset usage",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const extendTrialMutation = useMutation({
+    mutationFn: (extraDays) => usersAPI.extendCenterTrial(center.id, extraDays),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allCenters"] });
+      toast({ title: "Success", description: "Trial extended." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to extend trial",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const [extendDays, setExtendDays] = useState(3);
+
+  const sendResetMutation = useMutation({
+    mutationFn: () => usersAPI.sendUserPasswordReset(center.admin_user_id),
+    onSuccess: () => {
+      toast({ title: "Email sent", description: "Password reset email sent to the user." });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset email",
+        variant: "destructive",
+      });
+    },
+  });
 
 
 
@@ -212,7 +248,23 @@ export default function ClientDetailsModal({ center, onClose }) {
                 <span className="block text-[#000000]">{center.center_name}</span>
                 <div className="flex gap-2 mt-1">
                   <Badge className="bg-blue-100 text-blue-800">{center.subscription_plan_name}</Badge>
-                  <Badge className="bg-green-100 text-green-800">{center.is_trial ? 'Trial' : 'Active'}</Badge>
+                  {center.is_trial ? (
+                    <Badge className="bg-green-100 text-green-800">
+                      Trial
+                      {center.trial_days_remaining != null
+                        ? ` (${center.trial_days_remaining} day${center.trial_days_remaining === 1 ? "" : "s"} left)`
+                        : center.trial_end_date
+                          ? ` (ends ${format(new Date(center.trial_end_date), "MMM d, yyyy")})`
+                          : ""}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-800">
+                      Active
+                      {center.subscription_days_remaining != null
+                        ? ` (${center.subscription_days_remaining} day${center.subscription_days_remaining === 1 ? "" : "s"} left)`
+                        : ""}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </DialogTitle>
@@ -300,13 +352,13 @@ export default function ClientDetailsModal({ center, onClose }) {
                     <p className="text-sm text-[#555555]">Testimonials</p>
                     <p className="text-2xl font-bold text-[#000000]">
                       {center.testimonials_this_month || 0}
-                      <span className="text-sm text-[#555555]"> / {center.monthly_testimonials_limit}</span>
+                      <span className="text-sm text-[#555555]"> / {monthlyLimitLabel}</span>
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-[#555555]">Video Limit</p>
                     <p className="text-2xl font-bold text-[#000000]">
-                      {center.video_duration_limit / 60}
+                      {videoLimitMinutes ?? "—"}
                       <span className="text-sm text-[#555555]"> min</span>
                     </p>
                   </div>
@@ -314,11 +366,11 @@ export default function ClientDetailsModal({ center, onClose }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleResetUsage}
-                  disabled={updateCenterMutation.isPending}
+                  onClick={() => resetUsageMutation.mutate()}
+                  disabled={resetUsageMutation.isPending}
                   className="mt-3 w-full"
                 >
-                  Reset Usage Counter
+                  {resetUsageMutation.isPending ? "Resetting..." : "Reset Usage Period"}
                 </Button>
               </div>
 
@@ -352,8 +404,8 @@ export default function ClientDetailsModal({ center, onClose }) {
                   <span className="text-lg font-normal"> /month</span>
                 </p>
                 <p className="text-white/80 text-sm">
-                  {packages.find(p => p.id === center.subscription_plan)?.testimonials_limit || 0} testimonials •
-                  {Math.floor((packages.find(p => p.id === center.subscription_plan)?.video_duration_limit || 0) / 60)} min videos
+                  {(Number(currentPkg?.testimonials_limit) === 0 ? "Unlimited" : (currentPkg?.testimonials_limit || 0))} testimonials •
+                  {(videoLimitMinutes ?? 0)} min videos
                 </p>
               </div>
 
@@ -382,21 +434,6 @@ export default function ClientDetailsModal({ center, onClose }) {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label>Status</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="trial">Trial</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="past_due">Past Due</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <Button
                     onClick={handleUpdateSubscription}
                     disabled={isDeleting}
@@ -404,6 +441,40 @@ export default function ClientDetailsModal({ center, onClose }) {
                   >
                     {isDeleting ? "Updating..." : "Update Subscription"}
                   </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!center.admin_user_id || sendResetMutation.isPending}
+                    onClick={() => sendResetMutation.mutate()}
+                    className="w-full"
+                  >
+                    {sendResetMutation.isPending ? "Sending..." : "Send password reset email"}
+                  </Button>
+
+                  {center.is_trial && center.trial_active && (
+                    <div className="border rounded-xl p-4 bg-gray-50">
+                      <p className="text-sm font-semibold text-[#000000] mb-2">Extend trial</p>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          value={extendDays}
+                          onChange={(e) => setExtendDays(Number(e.target.value))}
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => extendTrialMutation.mutate(extendDays)}
+                          disabled={extendTrialMutation.isPending}
+                          className="bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
+                        >
+                          {extendTrialMutation.isPending ? "Extending..." : "Extend"}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-[#555555] mt-2">
+                        Allowed only while trial is still active.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -450,21 +521,6 @@ export default function ClientDetailsModal({ center, onClose }) {
                     </Button>
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-orange-50 rounded-xl p-6 border border-orange-200">
-                <h3 className="font-semibold text-orange-900 mb-2">Suspend Account</h3>
-                <p className="text-sm text-orange-800 mb-3">
-                  Temporarily disable this client's access without deleting data.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => updateCenterMutation.mutate({ subscription_status: 'cancelled' })}
-                  disabled={updateCenterMutation.isPending}
-                  className="border-orange-300 text-orange-700 hover:bg-orange-100"
-                >
-                  Suspend Account
-                </Button>
               </div>
             </TabsContent>
           </Tabs>

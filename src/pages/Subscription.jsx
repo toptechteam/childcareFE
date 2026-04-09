@@ -20,14 +20,17 @@ function CheckoutForm({ clientSecret }) {
 
   const [loading, setLoading] = useState(false);
   const [pkg, setPkg] = useState(null);
+  const [pkgError, setPkgError] = useState(null);
 
   useEffect(() => {
     const fetchPackage = async () => {
       try {
         const data = await usersAPI.getPackageById(user.package_id);
         setPkg(data);
+        setPkgError(null);
       } catch (error) {
         console.error('Error fetching package:', error);
+        setPkgError('Failed to load package details. Please try again.');
         toast({
           title: 'Error',
           description: 'Failed to load package details',
@@ -90,6 +93,24 @@ function CheckoutForm({ clientSecret }) {
     }
   };
 
+  if (pkgError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-500">Error</CardTitle>
+            <CardDescription>{pkgError}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button onClick={() => window.location.reload()} className="w-full bg-[#7ACDE0] hover:bg-[#5ab8cc] text-white">
+              Try Again
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   if (!pkg) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -139,7 +160,9 @@ function CheckoutForm({ clientSecret }) {
               <div className="border rounded-md p-3">
                 <PaymentElement
                   options={{
-                    layout: 'tabs',
+                    // Avoid showing additional payment methods (e.g. Klarna/Link) as selectable tabs.
+                    // Backend also restricts SetupIntent to card-only.
+                    layout: 'accordion',
                     fields: {
                       billingDetails: 'auto',
                     },

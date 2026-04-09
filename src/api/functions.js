@@ -36,3 +36,12 @@ export const createCustomerPortal = async (returnUrl) => {
     throw error.response?.data || error.message;
   }
 };
+
+export const listPaymentMethods = async () => {
+  try {
+    const response = await api.get('/stripe/payment-methods');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

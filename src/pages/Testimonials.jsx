@@ -23,7 +23,8 @@ export default function Testimonials() {
   const updateTestimonialMutation = useMutation({
     mutationFn: ({ id, data }) => TestimonialRequest.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testimonials-requests'] });
+      queryClient.invalidateQueries({ queryKey: ["testimonials-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["center"] });
     },
   });
 

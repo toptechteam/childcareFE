@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Edit, Trash2 } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 
 import ClientDetailsModal from "./ClientDetailsModal";
 
@@ -35,9 +35,8 @@ export default function ClientsList({ centers }) {
     <>
       <div className="space-y-3">
         {centers.map((center) => {
-          const daysRemaining = center.trial_end_date
-            // ? differenceInDays(new Date(center.trial_end_date), new Date())
-            // : 0;
+          const planKey = (center.subscription_plan_name || "").toLowerCase();
+          const trialDaysLeft = center.trial_days_remaining;
 
           return (
             <div
@@ -61,8 +60,8 @@ export default function ClientsList({ centers }) {
                     <h3 className="font-semibold text-[#000000] truncate">
                       {center.center_name}
                     </h3>
-                    <Badge className={planColors[center.subscription_plan]}>
-                      {center.subscription_plan}
+                    <Badge className={planColors[planKey] || "bg-gray-100 text-gray-800"}>
+                      {center.subscription_plan_name || "Plan"}
                     </Badge>
                     <Badge
                       className={center.is_trial ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}
@@ -71,9 +70,9 @@ export default function ClientsList({ centers }) {
                     </Badge>
                   </div>
                   <p className="text-sm text-[#555555]">{center.contact_email}</p>
-                  {center.is_trial && daysRemaining > 0 && (
+                  {center.is_trial && trialDaysLeft != null && trialDaysLeft > 0 && (
                     <p className="text-xs text-[#8AE0F2] mt-1">
-                      {daysRemaining} days remaining in trial
+                      {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in trial
                     </p>
                   )}
                 </div>

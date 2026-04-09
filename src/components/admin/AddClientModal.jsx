@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usersAPI } from "@/utils/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addDays, format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "../ui/use-toast";
 
@@ -21,9 +20,10 @@ export default function AddClientModal({ onClose, onSuccess }) {
     center_name: "",
     contact_email: "",
     contact_phone: "",
-    subscription_plan: "trial",
+    subscription_plan: "",
     subscription_type: "monthly",
     is_trial: true,
+    trial_days: 7,
   });
 
   const { data: packages = [], isLoading: isLoadingPackage } = useQuery({
@@ -31,26 +31,37 @@ export default function AddClientModal({ onClose, onSuccess }) {
     queryFn: () => usersAPI.getPackageList(),
   });
 
+  useEffect(() => {
+    if (!formData.subscription_plan && Array.isArray(packages) && packages.length > 0) {
+      const firstPkg = packages[0];
+      setFormData((prev) => ({
+        ...prev,
+        subscription_plan: firstPkg.id.toString(),
+        trial_days: prev.is_trial ? (firstPkg.number_of_trail_days || prev.trial_days || 7) : 0,
+      }));
+    }
+  }, [packages]);
+
+  useEffect(() => {
+    if (!formData.is_trial) return;
+    const pkg = packages.find((p) => p.id.toString() === formData.subscription_plan?.toString());
+    if (!pkg) return;
+    setFormData((prev) => ({
+      ...prev,
+      trial_days: pkg.number_of_trail_days || prev.trial_days || 7,
+    }));
+  }, [formData.subscription_plan, formData.is_trial]);
+
   const createCenterMutation = useMutation({
     mutationFn: async (data) => {
-      const trialEndDate = format(addDays(new Date(), 7), 'yyyy-MM-dd');
-      const planLimits = {
-        trial: { testimonials: 5, videoDuration: 120 },
-        starter: { testimonials: 5, videoDuration: 120 },
-        professional: { testimonials: 50, videoDuration: 300 },
-        enterprise: { testimonials: 999999, videoDuration: 600 },
-      };
-
-      const limits = planLimits[data.is_trial ? 'trial' : data.subscription_plan] || planLimits['trial'];
       const centerData = {
-        ...data,
-        trial_end_date: data.is_trial ? trialEndDate : null,
-        status: 'active',
-        monthly_testimonials_limit: limits.testimonials,
-        video_duration_limit: limits.videoDuration,
-        testimonials_this_month: 0,
-        billing_period_start: new Date().toISOString(),
-        setup_completed: false,
+        center_name: data.center_name,
+        contact_email: data.contact_email,
+        contact_phone: data.contact_phone,
+        subscription_plan: data.subscription_plan ? Number(data.subscription_plan) : null,
+        subscription_type: data.subscription_type,
+        is_trial: !!data.is_trial,
+        trial_days: data.is_trial ? Number(data.trial_days || 7) : 0,
       };
 
       return usersAPI.createCenter(centerData);
@@ -76,7 +87,6 @@ export default function AddClientModal({ onClose, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    formData.subscription_plan = parseInt(formData.subscription_plan);
     createCenterMutation.mutate(formData);
   };
 
@@ -160,7 +170,7 @@ export default function AddClientModal({ onClose, onSuccess }) {
           <div>
             <Label htmlFor="subscription_type">Plan Type</Label>
             <Select
-              value={formData.subscription_plan.toString()}
+              value={formData.subscription_type}
               onValueChange={(value) => {
                 setFormData(prev => ({ ...prev, subscription_type: value }));
               }}
@@ -191,6 +201,19 @@ export default function AddClientModal({ onClose, onSuccess }) {
               }
             />
           </div>
+
+          {formData.is_trial && (
+            <div>
+              <Label htmlFor="trial_days">Trial Days</Label>
+              <Input
+                id="trial_days"
+                type="number"
+                value={formData.trial_days}
+                onChange={(e) => setFormData({ ...formData, trial_days: e.target.value })}
+                className="mt-2"
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>

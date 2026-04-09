@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Send, ArrowLeft, Upload } from "lucide-react";
+import { API_BASE_URL } from "@/config/urls";
 
 export default function TextReviewForm({  type, request, center, onSubmit, onBack, isSubmitting}) {
-  const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://components-trainer-essentially-indirect.trycloudflare.com/soptima/api';
+  const apiUrl = API_BASE_URL;
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState("");
   const [uploading, setUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);
   const [photoViewUrl, setPhotoViewUrl] = useState(null);
-debugger
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -42,21 +43,25 @@ debugger
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({
-      parent_name: request.parent_name,
-      child_name: request.child_name,
-      relationship: request.relationship,
-      testimonial_type: 'text',
-      content: content,
-      rating: rating,
-      photo_url: photoUrl,
-    });
+    try {
+      await onSubmit({
+        parent_name: request.parent_name,
+        child_name: request.child_name,
+        relationship: request.relationship,
+        testimonial_type: 'text',
+        content: content,
+        rating: rating,
+        photo_url: photoUrl,
+      });
+    } catch {
+      /* parent mutation onError / toast */
+    }
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-xl mt-8">
+    <Card className="bg-white/90 backdrop-blur-sm border-2 border-gray-200 shadow-xl mt-8 ring-1 ring-gray-100">
       <CardContent className="p-8">
         <Button
           variant="ghost"
@@ -98,7 +103,11 @@ debugger
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Tell us about your experience with our centre..."
+              placeholder={
+                center?.center_name?.trim()
+                  ? `Tell us about your experience with ${center.center_name.trim()}…`
+                  : "Tell us about your experience…"
+              }
               className="h-48 text-base"
               required
             />

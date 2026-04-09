@@ -83,10 +83,9 @@ export default function AdminDashboard() {
     c.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredPackages = packages.filter(c =>
-    c.name?.toLowerCase().includes(searchQuery.toLowerCase())
-
-  );
+  const filteredPackages = packages
+    .filter((c) => c.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => (Number(b?.id) || 0) - (Number(a?.id) || 0));
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">

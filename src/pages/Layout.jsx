@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
 import { User } from "@/api/entities";
+import { PUBLIC_SITE_ORIGIN } from "@/config/urls";
 import {
   LayoutDashboard,
   Settings,
@@ -93,10 +94,12 @@ export default function Layout({ children, currentPageName }) {
     return <div className="min-h-screen bg-white">{children}</div>;
   }
 
-  const trialEndDate = new Date(user?.trial_end_date);
-  const today = new Date();
-  const timeDiff = trialEndDate - today;
-  const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+  const trialEndDate = user?.trial_end_date ? new Date(user.trial_end_date) : null;
+  const now = new Date();
+  const daysRemaining =
+    trialEndDate && !Number.isNaN(trialEndDate.getTime())
+      ? Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : null;
 
   return (
     <SidebarProvider>
@@ -179,15 +182,19 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="border-t border-gray-100 p-4">
-            {!isAdmin &&  user.trial_active &&(<div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
-              <p className="text-xs font-semibold text-[#000000] mb-1">7-Day Free Trial</p>
-              <p className="text-xs text-[#555555]">{daysRemaining} -  days remaining</p>
+            {!isAdmin && user?.trial_active && (
+              <div className="bg-gradient-to-r from-[#8AE0F2]/10 to-[#8AE0F2]/5 rounded-xl p-4 border border-[#8AE0F2]/20">
+              <p className="text-xs font-semibold text-[#000000]">
+                {daysRemaining != null
+                  ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left in your free trial`
+                  : "Free trial active"}
+              </p>
               {/* <Link to={createPageUrl("Settings")}>
                 <button className="mt-2 w-full bg-[#8AE0F2] text-white text-xs font-medium py-2 px-3 rounded-lg hover:bg-[#7ACDE0] transition-all duration-200">
                   Upgrade Now
                 </button>
               </Link> */}
-            </div>
+              </div>
             )}
             <div className="mt-3 text-center">
               <button
@@ -198,7 +205,7 @@ export default function Layout({ children, currentPageName }) {
               </button>
               <p className="tagline-text text-xs text-[#555555]">
                 Powered by{' '}
-                <a href="https://childcarestories.com.au" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#8AE0F2] hover:underline">
+                <a href={PUBLIC_SITE_ORIGIN} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#8AE0F2] hover:underline">
                   ChildcareStories.com.au
                 </a>
               </p>

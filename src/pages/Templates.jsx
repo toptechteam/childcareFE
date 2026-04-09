@@ -85,8 +85,9 @@ export default function Templates() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {templates.map((template) => {
-          const Icon = scenarioIcons[template.scenario] || FileText;
-          const colorClass = scenarioColors[template.scenario] || "text-[#555555] bg-gray-0";
+          const scenarioKey = template.scenario?.toLowerCase?.() ?? "";
+          const Icon = scenarioIcons[scenarioKey] || FileText;
+          const colorClass = scenarioColors[scenarioKey] || "text-[#555555] bg-gray-0";
 
           return (
             <Card key={template.id} className="bg-white/80 backdrop-blur-sm border-white/60 shadow-sm hover:shadow-lg transition-all duration-200 relative group">

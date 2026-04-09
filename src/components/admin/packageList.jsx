@@ -8,6 +8,7 @@ import AddPackageModal from "./AddPackageModal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usersAPI } from "@/utils/api";
 import { toast } from "@/components/ui/use-toast";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,25 @@ export default function PackageList({ plans }) {
   const [planToDelete, setPlanToDelete] = useState(null);
   const queryClient = useQueryClient();
 
+  const refreshPackages = () => {
+    queryClient.invalidateQueries({ queryKey: ["allPackages"] });
+  };
+
+  const togglePublicMutation = useMutation({
+    mutationFn: ({ planId, show_on_public }) =>
+      usersAPI.updatePackage(planId, { show_on_public }),
+    onSuccess: () => {
+      refreshPackages();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update package",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (planId) => usersAPI.deletePackage(planId),
     onSuccess: () => {
@@ -36,7 +56,7 @@ export default function PackageList({ plans }) {
         title: 'Success',
         description: 'Package deleted successfully',
       });
-      queryClient.invalidateQueries('packages');
+      refreshPackages();
       setPlanToDelete(null);
     },
     onError: (error) => {
@@ -83,7 +103,7 @@ export default function PackageList({ plans }) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-[#000000] truncate">
+                  <h3 className="font-semibold text-[#000000] truncate max-w-[220px]">
                     {plan.name}
                   </h3>
                   <Badge
@@ -94,7 +114,7 @@ export default function PackageList({ plans }) {
                     {plan.active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-                <p className="text-sm text-[#555555] truncate">
+                <p className="text-sm text-[#555555] truncate max-w-[320px]">
                   {plan.description}
                 </p>
               </div>
@@ -102,17 +122,32 @@ export default function PackageList({ plans }) {
 
             {/* Pricing Info */}
             <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2 mr-2">
+                <span className="text-xs text-[#555555]">Public</span>
+                <Switch
+                  checked={!!plan.show_on_public}
+                  onCheckedChange={(checked) =>
+                    togglePublicMutation.mutate({
+                      planId: plan.id,
+                      show_on_public: checked,
+                    })
+                  }
+                  disabled={togglePublicMutation.isPending}
+                />
+              </div>
               <div className="text-right mr-4 hidden md:block">
                 <p className="text-sm font-semibold text-[#000000]">
                   ${plan.price_monthly}/mo
                 </p>
-                <p className="text-xs text-[#555555]">
-                  ${plan.price_annual}/yr
-                </p>
+                {Number(plan.price_annual) > 0 ? (
+                  <p className="text-xs text-[#555555]">
+                    ${plan.price_annual}/yr
+                  </p>
+                ) : null}
               </div>
               <div className="text-right mr-4 hidden md:block">
                 <p className="text-sm font-semibold text-[#000000]">
-                  {plan.testimonials_limit}
+                  {Number(plan.testimonials_limit) === 0 ? "Unlimited" : plan.testimonials_limit}
                 </p>
                 <p className="text-xs text-[#555555]">testimonials limit</p>
               </div>
@@ -149,6 +184,10 @@ export default function PackageList({ plans }) {
         <AddPackageModal
           plan={selectedPlan}
           onClose={() => setSelectedPlan(null)}
+          onSuccessPackages={() => {
+            refreshPackages();
+            setSelectedPlan(null);
+          }}
         />
       )}
 

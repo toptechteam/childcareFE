@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,20 @@ import { Center } from "@/api/entities";
 import { UploadFile } from "@/api/integrations";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { usersAPI } from "@/utils/api";
 
 export default function Setup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
+  const [addressQuery, setAddressQuery] = useState("");
+  const [addressOptions, setAddressOptions] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const searchParams = new URLSearchParams(location.search || "");
+  const initialPackageId = searchParams.get("package");
+  const [selectedPackageId, setSelectedPackageId] = useState(initialPackageId);
 
   const [formData, setFormData] = useState({
     center_name: "",
@@ -33,12 +41,23 @@ export default function Setup() {
 
   const { user } = useAuth();
   const { data: center } = useQuery({
-    queryKey: ['center'],
+    queryKey: ["center", user?.center_id],
     queryFn: async () => {
-      const centers = await Center.findById(user?.center_id);
+      if (!user?.center_id) return null;
+      const centers = await Center.findById(user.center_id);
       return centers;
     },
+    enabled: !!user?.center_id,
   });
+
+  const { data: packages = [] } = useQuery({
+    queryKey: ["publicPackages"],
+    queryFn: () => usersAPI.getPublicPackages(),
+  });
+
+  const selectedPackage = Array.isArray(packages)
+    ? packages.find((p) => String(p.id) === String(selectedPackageId))
+    : null;
 
   useEffect(() => {
     if (center) {
@@ -55,22 +74,63 @@ export default function Setup() {
     }
   }, [center]);
 
+  useEffect(() => {
+    const q = (addressQuery || "").trim();
+    if (!q || q.length < 3) {
+      setAddressOptions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        setAddressLoading(true);
+        const url =
+          `https://nominatim.openstreetmap.org/search?` +
+          new URLSearchParams({
+            q,
+            format: "json",
+            addressdetails: "1",
+            limit: "5",
+          }).toString();
+        const resp = await fetch(url, {
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
+        });
+        if (!resp.ok) throw new Error("Failed to fetch address suggestions");
+        const json = await resp.json();
+        setAddressOptions(
+          Array.isArray(json)
+            ? json.map((r) => ({ label: r.display_name }))
+            : []
+        );
+      } catch (e) {
+        if (e?.name !== "AbortError") setAddressOptions([]);
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      clearTimeout(t);
+    };
+  }, [addressQuery]);
+
   const createOrUpdateMutation = useMutation({
     mutationFn: async (data) => {
-      const trialEndDate = format(addDays(new Date(), 7), 'yyyy-MM-dd');
       const centerData = {
         ...data,
         setup_completed: true,
-        ...(!center?.id && {
-          trial_end_date: trialEndDate,
-          subscription_plan: "trial"
-        })
       };
 
-      if (center?.id) {
+      if (center?.id && user?.center_id) {
         return Center.update(center.id, centerData);
       } else {
-        return Center.create(centerData);
+        return Center.create({
+          ...centerData,
+          ...(selectedPackageId ? { subscription_plan: selectedPackageId } : {}),
+        });
       }
     },
     onSuccess: () => {
@@ -79,6 +139,10 @@ export default function Setup() {
         title: center?.id ? ' Update successful' : 'Creation successful',
         description: center?.id ? 'Center updated successfully' : 'Center created successfully!',
       });
+      if (!user) {
+        navigate("/account-created", { replace: true });
+        return;
+      }
       navigate(createPageUrl("Dashboard"));
     },
     onError: (error) => {
@@ -141,13 +205,68 @@ export default function Setup() {
           <img
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ed9f71df888d487eb37e90/1c51a949d_1.png"
             alt="Childcare Stories"
-            className="h-32 mx-auto mb-6"
+            className="h-32 mx-auto mb-6 cursor-pointer"
+            onClick={() => navigate("/")}
           />
           <h1 className="logo-text text-3xl md:text-4xl text-[#000000] mb-2">
             Welcome! Let's Set Up Your Centre
           </h1>
-          <p className="text-[#555555]">Just a few quick steps to get started</p>
+          <p className="text-[#555555]">Welcome to Childcare Stories - just a few quick steps to get started</p>
         </div>
+
+        {!user && (
+          <Card className="bg-white/80 backdrop-blur-sm border-white/60 shadow-xl mb-6">
+            <CardHeader>
+              <CardTitle className="text-xl">Choose your plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                {(Array.isArray(packages) ? packages.filter((p) => p?.active) : []).map((pkg) => (
+                  <button
+                    key={pkg.id}
+                    type="button"
+                    onClick={() => setSelectedPackageId(String(pkg.id))}
+                    className={`text-left rounded-xl border p-4 transition-all ${
+                      String(pkg.id) === String(selectedPackageId)
+                        ? "border-[#8AE0F2] ring-2 ring-[#8AE0F2]/30 bg-[#8AE0F2]/5"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-[#000000]">{pkg.name}</p>
+                        <p className="text-xs text-[#555555] mt-1">
+                          {pkg.price_monthly ? `$${pkg.price_monthly}/mo` : ""}
+                        </p>
+                      </div>
+                      {String(pkg.id) === String(selectedPackageId) ? (
+                        <span className="text-xs font-semibold text-[#7ACDE0]">Selected</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 space-y-1 text-xs text-[#555555]">
+                      <div>
+                        {pkg.testimonials_limit === 0
+                          ? "Unlimited testimonials"
+                          : `${pkg.testimonials_limit} testimonials/month`}
+                      </div>
+                      {pkg.video_duration_limit ? (
+                        <div>{pkg.video_duration_limit}-minute video limit</div>
+                      ) : null}
+                      {pkg.number_of_trail_days ? (
+                        <div>{pkg.number_of_trail_days}-day free trial</div>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {selectedPackage ? (
+                <p className="text-xs text-[#555555] mt-3">
+                  You selected <span className="font-semibold text-[#000000]">{selectedPackage.name}</span>. This will be applied during setup.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
@@ -195,15 +314,59 @@ export default function Setup() {
                       className="mt-2"
                     />
                   </div>
+                  {!user && (
+                    <div>
+                      <Label htmlFor="contact_email">Email *</Label>
+                      <Input
+                        id="contact_email"
+                        type="email"
+                        value={formData.contact_email}
+                        onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                        placeholder="you@yourcentre.com.au"
+                        required
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-[#555555] mt-2">
+                        We’ll email your login details to this address.
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <Label htmlFor="address">Address</Label>
                     <Input
                       id="address"
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setFormData({ ...formData, address: v });
+                        setAddressQuery(v);
+                      }}
                       placeholder="123 Main Street, City, State"
                       className="mt-2"
+                      autoComplete="off"
                     />
+                    {(addressLoading || addressOptions.length > 0) && (
+                      <div className="mt-1 w-full rounded-md border bg-white shadow-lg">
+                        {addressLoading && (
+                          <div className="px-3 py-2 text-sm text-gray-500">Searching…</div>
+                        )}
+                        {!addressLoading &&
+                          addressOptions.map((opt) => (
+                            <button
+                              key={opt.label}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                              onClick={() => {
+                                setFormData({ ...formData, address: opt.label });
+                                setAddressQuery(opt.label);
+                                setAddressOptions([]);
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -330,7 +493,10 @@ export default function Setup() {
                   <Button
                     type="button"
                     onClick={() => setStep(step + 1)}
-                    disabled={step === 1 && !formData.center_name}
+                    disabled={
+                      step === 1 &&
+                      (!formData.center_name || (!user && !formData.contact_email))
+                    }
                     className="ml-auto bg-[#8AE0F2] hover:bg-[#7ACDE0] text-white"
                   >
                     Next

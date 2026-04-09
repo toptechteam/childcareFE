@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star, Video, Mic, MessageSquare } from "lucide-react";
+import { PUBLIC_SITE_ORIGIN } from "@/config/urls";
 
 export default function EmbedPreview({ testimonials, centre }) {
   const renderMedia = (testimonial) => {
@@ -136,7 +137,7 @@ export default function EmbedPreview({ testimonials, centre }) {
             <p className="text-sm text-[#555555]">
               Powered by{' '}
               <a
-                href="https://childcarestories.com.au"
+                href={PUBLIC_SITE_ORIGIN}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-[#8AE0F2] hover:underline"
