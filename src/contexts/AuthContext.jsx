@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
         is_staff: data.is_staff ?? data.user?.is_staff,
         first_name: data.first_name ?? data.user?.first_name,
         last_name: data.last_name ?? data.user?.last_name,
+        package_id: data.package_id ?? data.user?.package_id,
       };
       
       persistUser(userInfo);

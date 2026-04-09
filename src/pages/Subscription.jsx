@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { authAPI, usersAPI } from '@/utils/api';
+import { Center } from '@/api/entities';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 
@@ -69,7 +70,18 @@ function CheckoutForm({ clientSecret }) {
   useEffect(() => {
     const fetchPackage = async () => {
       try {
-        const data = await usersAPI.getPackageById(user.package_id);
+        let planId = user?.package_id;
+        if (!planId && user?.center_id) {
+          const center = await Center.findById(user.center_id);
+          planId = center?.subscription_plan ?? center?.package?.id;
+        }
+        if (!planId) {
+          setPkgError(
+            'No subscription plan is linked to your account. Complete centre setup or contact support.'
+          );
+          return;
+        }
+        const data = await usersAPI.getPackageById(planId);
         setPkg(data);
         setPkgError(null);
       } catch (error) {
@@ -83,7 +95,7 @@ function CheckoutForm({ clientSecret }) {
       }
     };
 
-    if (user?.package_id) {
+    if (user) {
       fetchPackage();
     }
   }, [user]);
